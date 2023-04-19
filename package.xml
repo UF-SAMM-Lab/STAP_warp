@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>stap_warp</name>
+  <version>0.0.0</version>
+  <description>The parallel_robot_point_clouds package</description>
+
+  <maintainer email="jared.flowers@ufl.edu">Jared Flowers</maintainer>
+  <license>BSD</license>
+  <author email="jared.flowers@ufl.edu">Jared Flowers</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>avoidance_intervals</build_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>avoidance_intervals</build_export_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>avoidance_intervals</exec_depend>
+  <depend>velocity_scaling_iso15066</depend>
+</package>

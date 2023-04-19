@@ -1,0 +1,9 @@
+<launch>
+    <rosparam file="$(find uf_edo_configurations)/config/human_config.yaml" />
+    <rosparam file="$(find generate_ssm_data)/config/config.yaml" />
+    <arg name="human_task_num" default="1" />
+    <param  name="human_task_num" value="$(arg human_task_num)"/>
+    <node name="evaluate_ssm" pkg="generate_ssm_data" type="evaluate_ssm" output="screen">
+    </node> 
+
+</launch>
