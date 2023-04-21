@@ -18,6 +18,9 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <rosdyn_core/primitives.h>
 #include <rosparam_utilities/rosparam_utilities.h>
+#include <moveit_msgs/ApplyPlanningScene.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <human_probablistic_occupancy/human_probablistic_occupancy.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>

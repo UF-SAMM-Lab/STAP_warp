@@ -2,38 +2,75 @@ cmake_minimum_required(VERSION 2.8.3)
 project(stap_warp)
 add_compile_options(-std=c++14 -funroll-loops -Wall -Ofast)
 set(CMAKE_BUILD_TYPE Release)
+add_definitions(-w)
 #add_compile_options(-std=c++11)
 # set(CMAKE_BUILD_TYPE Debug)
 
 find_package(catkin REQUIRED COMPONENTS
+  graph_core
+  moveit_core
+  moveit_ros_planning
   roscpp
-  velocity_scaling_iso15066
   geometry_msgs
-  avoidance_intervals
+  irrt_star_avoid
+  # edo_description_simple
+  visualization_msgs
+  subscription_notifier
+  human_probablistic_occupancy
+  moveit_msgs
+  actionlib
+  actionlib_msgs
   velocity_scaling_iso15066
 )
 
+find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
 catkin_package(
-  INCLUDE_DIRS 
-  LIBRARIES
-  CATKIN_DEPENDS roscpp velocity_scaling_iso15066 geometry_msgs avoidance_intervals velocity_scaling_iso15066
-  DEPENDS
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  CATKIN_DEPENDS
+    graph_core
+    moveit_core
+    moveit_ros_planning
+    roscpp
+    geometry_msgs
+    irrt_star_avoid
+    # edo_description_simple
+    visualization_msgs
+    subscription_notifier
+    human_probablistic_occupancy
+    velocity_scaling_iso15066
+  DEPENDS Boost
 )
+
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(evaluate_ssm src/evaluate_ssm.cpp)
-target_link_libraries(evaluate_ssm
+add_library(${PROJECT_NAME}
+  src/${PROJECT_NAME}/stap_warp.cpp
+  src/${PROJECT_NAME}/utilities.cpp
+)
+
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   torch
 )
-add_dependencies(evaluate_ssm ${catkin_EXPORTED_TARGETS})
-install(TARGETS evaluate_ssm DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(test_sim src/test_sim.cpp)
+target_link_libraries(test_sim
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  torch
+)
+add_dependencies(test_sim ${catkin_EXPORTED_TARGETS})
+install(TARGETS test_sim DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Install ##

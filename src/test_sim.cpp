@@ -1,4 +1,5 @@
-#include <predicted_obstacle_planning_cost_test_edo/utilities.h>
+#include <stap_warp/utilities.h>
+#include <stap_warp/stap_warp.h>
 
 #include <actionlib/client/simple_action_client.h>
 #include <moveit_msgs/MoveGroupAction.h>
@@ -31,6 +32,34 @@ int main(int argc, char** argv) {
     spinner.start();
 
     avoidance_intervals::skeleton test_skeleton(nh,"/predicted_skeleton",0.05,0.1);
+
+    Eigen::Vector3f workspace_lb={-1,-1,0.5};
+    Eigen::Vector3f workspace_ub={1,1,2.5};
+    
+    std::vector<double> ws_lb_param;
+
+    if (nh.getParam("workspace_lower_bounds_xyz",ws_lb_param))
+    {
+      for (int i=0;i<3;i++) workspace_lb[i] = ws_lb_param[i];
+    } else {
+      ROS_DEBUG("workspace_lower_bounds_xyz is not set, default={-1,-1,0.5}");
+    }  
+
+    std::vector<double> ws_ub_param;
+
+    if (nh.getParam("workspace_upper_bounds_xyz",ws_ub_param))
+    {
+      for (int i=0;i<3;i++) workspace_ub[i] = ws_ub_param[i];
+    } else {
+      ROS_DEBUG("workspace_lower_bounds_xyz is not set, default={1,1,2.5}");
+    }
+    double grid_spacing=0.05;
+        if (!nh.getParam("/grid_spacing",grid_spacing))
+    {
+      ROS_WARN("grid_spacing is not defined");
+    }
+
+    avoidance_intervals::modelPtr model_ = std::make_shared<avoidance_intervals::model>(workspace_lb,workspace_ub,grid_spacing,6,nh);
 
     std::vector<Eigen::VectorXf> avoid_pts;
     test_skeleton.publish_pts(avoid_pts);
@@ -283,13 +312,16 @@ int main(int argc, char** argv) {
       grav << 0, 0, -9.806;
 
       rosdyn::ChainPtr chain = rosdyn::createChain(urdf_model, base_frame_, tool_frame, grav);
-      std::string log_file= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_sim.csv";
-      std::string log_file2= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_solver_perf_sim.csv";
+      std::string log_file= ros::package::getPath("stap_warp")+"/data/"+ log_file_name +"_sim.csv";
+      std::string log_file2= ros::package::getPath("stap_warp")+"/data/"+ log_file_name +"_solver_perf_sim.csv";
       data_recorder rec(nh,log_file, scene,&test_skeleton,model,state,human_link_lengths2,human_link_radii2,chain,log_file2);
       int num_tests=1;
       nh.getParam("/num_tests", num_tests);
       move_group.setMaxVelocityScalingFactor(1.0);
       move_group.setMaxAccelerationScalingFactor(1.0);
+
+      stap_warper stap_warp(nh);
+
       for (int iter=0;iter<num_tests;iter++) {
         std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
         test_skeleton.publish_pts(std::vector<Eigen::VectorXf>());
@@ -569,7 +601,11 @@ int main(int argc, char** argv) {
           } else {
             if ((i==1) && ((test_num-3)%5!=0)) co_human.start_obs();
             ros::Time p_start = ros::Time::now();
-            move_group.execute(plans[i]);
+            move_group.asyncExecute(plans[i]);
+            while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
+              stap_warp.warp(plans[i],model_->joint_seq,(ros::Time::now()-p_start).toSec());
+              ros::Duration(0.1).sleep();
+            }
             ROS_INFO_STREAM("exec took:"<<(ros::Time::now()-p_start).toSec());
             if (i==1) co_human.removeHumans();
           }

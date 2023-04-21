@@ -1,0 +1,3 @@
+grid_spacing: 0.05
+workspace_lower_bounds_xyz: [-0.5,-1,-0.5]
+workspace_upper_bounds_xyz: [1.5,1,2.0]

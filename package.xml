@@ -9,14 +9,49 @@
   <author email="jared.flowers@ufl.edu">Jared Flowers</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>graph_core</build_depend>
+  <build_depend>moveit_core</build_depend>
+  <build_depend>moveit_ros_planning</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>geometry_msgs</build_depend>
-  <build_depend>avoidance_intervals</build_depend>
+  <build_depend>irrt_star_avoid</build_depend>
+  <!-- <build_depend>edo_description_simple</build_depend> -->
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>subscription_notifier</build_depend>
+  <build_depend>human_probablistic_occupancy</build_depend>
+  <build_depend>moveit_msgs</build_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>uf_edo_safety</build_depend>
+  <build_depend>velocity_scaling_iso15066</build_depend>
+  <build_export_depend>graph_core</build_export_depend>
+  <build_export_depend>moveit_core</build_export_depend>
+  <build_export_depend>moveit_ros_planning</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>geometry_msgs</build_export_depend>
-  <build_export_depend>avoidance_intervals</build_export_depend>
+  <build_export_depend>irrt_star_avoid</build_export_depend>
+  <!-- <build_export_depend>edo_description_simple</build_export_depend> -->
+  <build_export_depend>visualization_msgs</build_export_depend>
+  <build_export_depend>subscription_notifier</build_export_depend>
+  <build_export_depend>human_probablistic_occupancy</build_export_depend>
+  <build_export_depend>moveit_msgs</build_export_depend>
+  <build_export_depend>actionlib</build_export_depend>
+  <build_export_depend>actionlib_msgs</build_export_depend>
+  <build_export_depend>uf_edo_safety</build_export_depend>
+  <build_export_depend>velocity_scaling_iso15066</build_export_depend>
+  <exec_depend>graph_core</exec_depend>
+  <exec_depend>moveit_core</exec_depend>
+  <exec_depend>moveit_ros_planning</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>avoidance_intervals</exec_depend>
-  <depend>velocity_scaling_iso15066</depend>
+  <exec_depend>irrt_star_avoid</exec_depend>
+  <!-- <exec_depend>edo_description_simple</exec_depend> -->
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>subscription_notifier</exec_depend>
+  <exec_depend>human_probablistic_occupancy</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>actionlib</exec_depend>
+  <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>uf_edo_safety</exec_depend>
+  <exec_depend>velocity_scaling_iso15066</exec_depend>
 </package>
