@@ -31,34 +31,36 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     wp_times.reserve(plan.trajectory_.joint_trajectory.points.size());
     bool in_plan = false;
     std::vector<double> pos = plan.trajectory_.joint_trajectory.points[0].positions;
-    Eigen::VectorXd> prev_pose(pos.size());
+    Eigen::VectorXd prev_pose = Eigen::VectorXd::Zero(pos.size());
     for (int i=0;i<pos.size();i++) prev_pose[i] = pos[i];
     double start_time;
     for (int p=1;p<plan.trajectory_.joint_trajectory.points.size();p++) {
       pos = std::vector<double>(plan.trajectory_.joint_trajectory.points[p].positions);
-      Eigen::VectorXd> tmp_vec(pos.size());
+      Eigen::VectorXd tmp_vec = Eigen::VectorXd::Zero(pos.size());
       for (int i=0;i<pos.size();i++) tmp_vec[i] = pos[i];
-      std::cout<<(tmp_vec).transpose()<<","<<(prev_pose).transpose()<<std::endl;
-      std::cout<<"cur:"<<cur_pose.transpose()<<std::endl;
-      std::cout<<((cur_pose-tmp_vec).array()<0)<<","<<((cur_pose-prev_pose).array()<0)<<std::endl;
-      Eigen::ArrayXi sgn1 = -1*((cur_pose-tmp_vec).array()<0)+((cur_pose-tmp_vec).array()>0);
-      Eigen::ArrayXi sgn2 = -1*((cur_pose-prev_pose).array()<0)+((cur_pose-prev_pose).array()>0);
-      Eigen::ArrayXi sgn3 = sgn1 * sgn2;
+      if (!in_plan) {
+        std::cout<<(tmp_vec).transpose()<<","<<(prev_pose).transpose()<<std::endl;
+        std::cout<<"cur:"<<cur_pose.transpose()<<std::endl;
+        std::cout<<-1*((cur_pose-tmp_vec).array()<0)<<","<<-1*((cur_pose-prev_pose).array()<0)<<std::endl;
+        Eigen::ArrayXi sgn1 = -1*((cur_pose-tmp_vec).array()<0).matrix().cast<int>()+((cur_pose-tmp_vec).array()>0).matrix().cast<int>();
+        Eigen::ArrayXi sgn2 = -1*((cur_pose-prev_pose).array()<0).matrix().cast<int>()+((cur_pose-prev_pose).array()>0).matrix().cast<int>();
+        // Eigen::ArrayXi sgn3 = sgn1 * sgn2;
 
-      std::cout<<sgn1<<","<<sgn2<<","<<sgn3<<std::endl;
-      std::cout<<sgn1.cwiseProduct(sgn2).sum()<<std::endl;
-      if (sgn1.cwiseProduct(sgn2).sum()==-1*(int)sgn1.size()) {
-        poses.push_back(cur_pose);
-        double pct = (cur_pose-prev_pose).norm()/(tmp_vec-prev_pose).norm();
-        std::cout<<"p:"<<p<<" pct:"<<pct<<std::endl;
-        start_time = pct*(plan.trajectory_.joint_trajectory.points[p].time_from_start-plan.trajectory_.joint_trajectory.points[p-1].time_from_start).toSec()+plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
-        wp_times.push_back(0.0);
-        in_plan = true;
-      } else if ((cur_pose-prev_pose).norm()==0) {
-        poses.push_back(cur_pose);
-        start_time = plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
-        wp_times.push_back(0.0);
-        in_plan = true;
+        std::cout<<sgn1<<","<<sgn2<<","<<sgn1.cwiseProduct(sgn2)<<std::endl;
+        std::cout<<sgn1.cwiseProduct(sgn2).sum()<<std::endl;
+        if (sgn1.cwiseProduct(sgn2).sum()==-1*(int)sgn1.size()) {
+          poses.push_back(cur_pose);
+          double pct = (cur_pose-prev_pose).norm()/(tmp_vec-prev_pose).norm();
+          std::cout<<"p:"<<p<<" pct:"<<pct<<std::endl;
+          start_time = pct*(plan.trajectory_.joint_trajectory.points[p].time_from_start-plan.trajectory_.joint_trajectory.points[p-1].time_from_start).toSec()+plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
+          wp_times.push_back(0.0);
+          in_plan = true;
+        } else if ((cur_pose-prev_pose).norm()==0) {
+          poses.push_back(cur_pose);
+          start_time = plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
+          wp_times.push_back(0.0);
+          in_plan = true;
+        }
       }
       if (in_plan) {
         poses.push_back(tmp_vec);
@@ -84,7 +86,7 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
                 std::cout<<"htime:"<<h_time<<std::endl;
                 Eigen::VectorXd cur_pose = poses[p-1] + double(s/num_steps)*diff;
                 // Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_pose);
-                ssm->setPointCloud(human_seq[std::min((int)round(h_time*10),int(human_seq.size())-1)].second);
+                ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
                 std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_pose,dq);
                 std::cout<<"scale_vects:"<<scale_vects.size()<<std::endl;
                 Eigen::VectorXd tau(diff.size());
