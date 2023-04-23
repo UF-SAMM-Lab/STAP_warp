@@ -20,10 +20,16 @@ stap_warper::stap_warper(ros::NodeHandle nh):nh(nh) {
     chain_ = rosdyn::createChain(robo_model, base_frame_, tool_frame, grav);
     ssm=std::make_shared<ssm15066::DeterministicSSM>(chain_,nh); 
     link_names = chain_->getLinksName();
+    scale_time_sub = nh.subscribe<std_msgs::Float64>("/execution_ratio",1,&stap_warper::scale_time_callback,this);
+}
+
+void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
+  path_time_pct = msg->data;
 }
 
 void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose) {
-    std::cout<<"start stap warp"<<std::endl;
+    double path_time = path_time_pct*plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
+    std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
     int start_p = 1;
     std::vector<Eigen::VectorXd> poses;
     std::vector<double> wp_times;
@@ -39,28 +45,41 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
       Eigen::VectorXd tmp_vec = Eigen::VectorXd::Zero(pos.size());
       for (int i=0;i<pos.size();i++) tmp_vec[i] = pos[i];
       if (!in_plan) {
-        std::cout<<(tmp_vec).transpose()<<","<<(prev_pose).transpose()<<std::endl;
-        std::cout<<"cur:"<<cur_pose.transpose()<<std::endl;
-        std::cout<<-1*((cur_pose-tmp_vec).array()<0)<<","<<-1*((cur_pose-prev_pose).array()<0)<<std::endl;
-        Eigen::ArrayXi sgn1 = -1*((cur_pose-tmp_vec).array()<0).matrix().cast<int>()+((cur_pose-tmp_vec).array()>0).matrix().cast<int>();
-        Eigen::ArrayXi sgn2 = -1*((cur_pose-prev_pose).array()<0).matrix().cast<int>()+((cur_pose-prev_pose).array()>0).matrix().cast<int>();
-        // Eigen::ArrayXi sgn3 = sgn1 * sgn2;
-
-        std::cout<<sgn1<<","<<sgn2<<","<<sgn1.cwiseProduct(sgn2)<<std::endl;
-        std::cout<<sgn1.cwiseProduct(sgn2).sum()<<std::endl;
-        if (sgn1.cwiseProduct(sgn2).sum()==-1*(int)sgn1.size()) {
+        // std::cout<<plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec()<<","<<plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec()<<","<<path_time<<std::endl;
+        if ((path_time>=plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec())&&(path_time<plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec())) {
+          start_time = path_time;
           poses.push_back(cur_pose);
-          double pct = (cur_pose-prev_pose).norm()/(tmp_vec-prev_pose).norm();
-          std::cout<<"p:"<<p<<" pct:"<<pct<<std::endl;
-          start_time = pct*(plan.trajectory_.joint_trajectory.points[p].time_from_start-plan.trajectory_.joint_trajectory.points[p-1].time_from_start).toSec()+plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
-          wp_times.push_back(0.0);
-          in_plan = true;
-        } else if ((cur_pose-prev_pose).norm()==0) {
-          poses.push_back(cur_pose);
-          start_time = plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
           wp_times.push_back(0.0);
           in_plan = true;
         }
+        // std::cout<<(prev_pose).transpose()<<"->"<<(tmp_vec).transpose()<<std::endl;
+        // std::cout<<"cur:"<<cur_pose.transpose()<<std::endl;
+        // Eigen::VectorXd diff1 = 1000*(cur_pose-tmp_vec);
+        // Eigen::VectorXd diff2 = 1000*(cur_pose-prev_pose);
+        // Eigen::ArrayXi sgn1 = diff1.array().round().sign().matrix().cast<int>().array();
+        // Eigen::ArrayXi sgn2 = diff2.array().round().sign().matrix().cast<int>().array();
+        // int sgn1_non_zero = sgn1.abs().sum();
+        // int sgn2_non_zero = sgn2.abs().sum();
+        // // Eigen::ArrayXi sgn3 = sgn1 * sgn2;
+
+        // std::cout<<sgn1<<",\n"<<sgn2<<",\n"<<(sgn1*sgn2)<<std::endl;
+        // std::cout<<"sgn1 non zero"<<sgn1_non_zero<<", sgn2:"<<sgn2_non_zero<<std::endl;
+        // std::cout<<(sgn1*sgn2).sum()<<std::endl;
+        // if (sgn1.cwiseProduct(sgn2).sum()==-1*std::min(sgn1_non_zero,sgn2_non_zero)) {
+        //   poses.push_back(cur_pose);
+        //   double pct = (cur_pose-prev_pose).norm()/(tmp_vec-prev_pose).norm();
+        //   std::cout<<"p:"<<p<<" pct:"<<pct<<std::endl;
+        //   start_time = pct*(plan.trajectory_.joint_trajectory.points[p].time_from_start-plan.trajectory_.joint_trajectory.points[p-1].time_from_start).toSec()+plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
+        //   wp_times.push_back(0.0);
+        //   in_plan = true;
+        // } else if ((cur_pose-prev_pose).norm()==0) {
+        //   poses.push_back(cur_pose);
+        //   start_time = plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
+        //   wp_times.push_back(0.0);
+        //   in_plan = true;
+        // }
+
+
       }
       if (in_plan) {
         poses.push_back(tmp_vec);
@@ -68,10 +87,10 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
       }
       prev_pose = tmp_vec;
     }
-    pos = std::vector<double>(plan.trajectory_.joint_trajectory.points.back().positions);
-    Eigen::Map<Eigen::VectorXd> tmp_vec(&pos[0], pos.size());
-    poses.push_back(tmp_vec);
-    wp_times.push_back(plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec());
+    // pos = std::vector<double>(plan.trajectory_.joint_trajectory.points.back().positions);
+    // Eigen::Map<Eigen::VectorXd> tmp_vec(&pos[0], pos.size());
+    // poses.push_back(tmp_vec);
+    // wp_times.push_back(plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec());
     std::cout<<"poses:"<<poses.size()<<std::endl;
     std::cout<<"start stap warp loop"<<std::endl;
     for (int iter=0;iter<max_iters;iter++) {
