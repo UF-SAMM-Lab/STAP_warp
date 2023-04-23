@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
       ROS_DEBUG("workspace_lower_bounds_xyz is not set, default={1,1,2.5}");
     }
     double grid_spacing=0.05;
-        if (!nh.getParam("/grid_spacing",grid_spacing))
+    if (!nh.getParam("/grid_spacing",grid_spacing))
     {
       ROS_WARN("grid_spacing is not defined");
     }

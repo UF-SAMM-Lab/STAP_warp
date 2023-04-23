@@ -21,6 +21,11 @@ stap_warper::stap_warper(ros::NodeHandle nh):nh(nh) {
     ssm=std::make_shared<ssm15066::DeterministicSSM>(chain_,nh); 
     link_names = chain_->getLinksName();
     scale_time_sub = nh.subscribe<std_msgs::Float64>("/execution_ratio",1,&stap_warper::scale_time_callback,this);
+    warp_pub = nh.advertise<visualization_msgs::Marker>("/warp_points",1);
+    if (!nh.getParam("/warp_repulsion",repulsion))
+    {
+      ROS_WARN("repulsion is not defined");
+    }
 }
 
 void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
@@ -52,33 +57,6 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
           wp_times.push_back(0.0);
           in_plan = true;
         }
-        // std::cout<<(prev_pose).transpose()<<"->"<<(tmp_vec).transpose()<<std::endl;
-        // std::cout<<"cur:"<<cur_pose.transpose()<<std::endl;
-        // Eigen::VectorXd diff1 = 1000*(cur_pose-tmp_vec);
-        // Eigen::VectorXd diff2 = 1000*(cur_pose-prev_pose);
-        // Eigen::ArrayXi sgn1 = diff1.array().round().sign().matrix().cast<int>().array();
-        // Eigen::ArrayXi sgn2 = diff2.array().round().sign().matrix().cast<int>().array();
-        // int sgn1_non_zero = sgn1.abs().sum();
-        // int sgn2_non_zero = sgn2.abs().sum();
-        // // Eigen::ArrayXi sgn3 = sgn1 * sgn2;
-
-        // std::cout<<sgn1<<",\n"<<sgn2<<",\n"<<(sgn1*sgn2)<<std::endl;
-        // std::cout<<"sgn1 non zero"<<sgn1_non_zero<<", sgn2:"<<sgn2_non_zero<<std::endl;
-        // std::cout<<(sgn1*sgn2).sum()<<std::endl;
-        // if (sgn1.cwiseProduct(sgn2).sum()==-1*std::min(sgn1_non_zero,sgn2_non_zero)) {
-        //   poses.push_back(cur_pose);
-        //   double pct = (cur_pose-prev_pose).norm()/(tmp_vec-prev_pose).norm();
-        //   std::cout<<"p:"<<p<<" pct:"<<pct<<std::endl;
-        //   start_time = pct*(plan.trajectory_.joint_trajectory.points[p].time_from_start-plan.trajectory_.joint_trajectory.points[p-1].time_from_start).toSec()+plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
-        //   wp_times.push_back(0.0);
-        //   in_plan = true;
-        // } else if ((cur_pose-prev_pose).norm()==0) {
-        //   poses.push_back(cur_pose);
-        //   start_time = plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec();
-        //   wp_times.push_back(0.0);
-        //   in_plan = true;
-        // }
-
 
       }
       if (in_plan) {
@@ -87,34 +65,67 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
       }
       prev_pose = tmp_vec;
     }
-    // pos = std::vector<double>(plan.trajectory_.joint_trajectory.points.back().positions);
-    // Eigen::Map<Eigen::VectorXd> tmp_vec(&pos[0], pos.size());
-    // poses.push_back(tmp_vec);
-    // wp_times.push_back(plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec());
-    std::cout<<"poses:"<<poses.size()<<std::endl;
+
     std::cout<<"start stap warp loop"<<std::endl;
     for (int iter=0;iter<max_iters;iter++) {
+        std::vector<Eigen::VectorXd> new_poses;
+        std::vector<double> new_wpt_times;
+        std::cout<<"old poses:\n";
+        for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
         for (int p=1;p<poses.size();p++) {
             Eigen::VectorXd diff = poses[p]-poses[p-1];
             int num_steps = std::max(std::ceil(diff.norm()/0.1),1.0);
             double nominal_time = wp_times[p]-wp_times[p-1];
-            std::cout<<"nominal time:"<<nominal_time<<std::endl;
+            // std::cout<<"nominal time:"<<nominal_time<<std::endl;
             Eigen::VectorXd dq = diff/nominal_time;
             for (int s=0;s<num_steps;s++) {
-                double h_time = wp_times[p-1] + double(s/num_steps)*nominal_time-human_time_since_start;
-                std::cout<<"htime:"<<h_time<<std::endl;
-                Eigen::VectorXd cur_pose = poses[p-1] + double(s/num_steps)*diff;
+                double pct = (double)s/(double)num_steps;
+                double nom_time = wp_times[p-1] + pct*nominal_time;
+                double h_time = nom_time-human_time_since_start;
+                // std::cout<<"htime:"<<h_time<<std::endl;
+                Eigen::VectorXd cur_pose = poses[p-1] + pct*diff;
                 // Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_pose);
                 ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
                 std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_pose,dq);
-                std::cout<<"scale_vects:"<<scale_vects.size()<<std::endl;
+                // std::cout<<"scale_vects:"<<scale_vects.size()<<std::endl;
                 Eigen::VectorXd tau(diff.size());
                 for (int j=0;j<dq.size();j++) {
                   Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_pose,link_names[j]);
-                  tau += repulsion*std::max(1-scale_vects[j].first,0.0)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;
+                  tau += 1.0*repulsion*std::max(1-scale_vects[j].first,0.0)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;
                 }
-                std::cout<<"tau:"<<tau.transpose()<<std::endl;
+                std::cout<<tau<<std::endl;
+                new_poses.push_back(cur_pose-1.0*tau);
+                new_wpt_times.push_back(nom_time);
             }
         }
+        poses = new_poses;
+        wp_times = new_wpt_times;
+        std::cout<<"new poses:\n";
+        for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     }
+    visualization_msgs::Marker mkr;
+    mkr.header.frame_id = "world";
+    mkr.id = 10000;
+    mkr.type = 4;
+    mkr.pose.position.x = 0;
+    mkr.pose.position.y = 0;
+    mkr.pose.position.z = 0;
+    mkr.pose.orientation.w = 1;
+    mkr.pose.orientation.x = 0;
+    mkr.pose.orientation.y = 0;
+    mkr.pose.orientation.z = 0;
+    mkr.color.a = 1.0;
+    mkr.color.b = 1.0;
+    mkr.scale.x = 0.01;
+    mkr.lifetime = ros::Duration();
+    for (int i=0;i<poses.size();i++) {
+      Eigen::Affine3d T_base_tool = chain_->getTransformation(poses[i]);
+      Eigen::Vector3d ee = T_base_tool.translation();
+      geometry_msgs::Point pt;
+      pt.x = ee[0];
+      pt.y = ee[1];
+      pt.z = ee[2];
+      mkr.points.push_back(pt);
+    }
+    warp_pub.publish(mkr);
 }

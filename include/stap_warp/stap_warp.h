@@ -8,6 +8,8 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <avoidance_intervals/avoidance_model.h>
 #include <std_msgs/Float64.h>
+#include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Point.h>
 
 class stap_warper {
     public:
@@ -20,8 +22,9 @@ class stap_warper {
         std::vector<std::string> link_names;
         ros::NodeHandle nh;
         int max_iters = 1;
-        double repulsion = 1.0;
+        double repulsion = 0.0001;
         ros::Subscriber scale_time_sub;
         double path_time_pct = 0.0;
+        ros::Publisher warp_pub;
 
 };

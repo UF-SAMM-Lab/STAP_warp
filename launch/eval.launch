@@ -7,6 +7,7 @@
     <rosparam file="$(find stap_warp)/config/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/stap_config.yaml" />
     <param  name="test_num" value="$(arg test)"/>
     <param  name="planning_time" value="$(arg planning_time)"/>
     <param  name="num_tests" value="$(arg num_tests)"/>
