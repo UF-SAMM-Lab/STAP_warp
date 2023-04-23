@@ -11,7 +11,7 @@
 class stap_warper {
     public:
         stap_warper(ros::NodeHandle nh);
-        void warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> human_seq, double time_since_start);
+        void warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose);
     private:
         ssm15066::DeterministicSSMPtr ssm;
         rosdyn::ChainPtr chain_;

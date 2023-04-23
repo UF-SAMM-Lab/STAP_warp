@@ -414,7 +414,7 @@ int main(int argc, char** argv) {
         
 
         est_plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
-        ROS_WARN_STREAM("path2 time:"<<est_plan_time);
+        ROS_WARN_STREAM("path p="<<plans.size()-1<<" time:"<<est_plan_time<<", plan size"<<plans[1].trajectory_.joint_trajectory.points.size());
         ros::Duration(0.5).sleep();
         rec.plan_time = est_plan_time;
         if (get_plan_time_from_perf) rec.plan_time = rec.avoid_plan_time;
@@ -601,10 +601,15 @@ int main(int argc, char** argv) {
           } else {
             if ((i==1) && ((test_num-3)%5!=0)) co_human.start_obs();
             ros::Time p_start = ros::Time::now();
-            move_group.asyncExecute(plans[i]);
-            while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-              stap_warp.warp(plans[i],model_->joint_seq,(ros::Time::now()-p_start).toSec());
-              ros::Duration(0.1).sleep();
+            if (i==1) {
+              ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
+              move_group.asyncExecute(plans[i]);
+              while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
+                stap_warp.warp(plans[i],model_->joint_seq,(ros::Time::now()-p_start).toSec(),rec.joint_pos_vec);
+                ros::Duration(0.1).sleep();
+              }
+            } else {
+              move_group.execute(plans[i]);
             }
             ROS_INFO_STREAM("exec took:"<<(ros::Time::now()-p_start).toSec());
             if (i==1) co_human.removeHumans();
