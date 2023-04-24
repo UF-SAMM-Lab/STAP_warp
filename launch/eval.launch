@@ -11,10 +11,10 @@
     <param  name="test_num" value="$(arg test)"/>
     <param  name="planning_time" value="$(arg planning_time)"/>
     <param  name="num_tests" value="$(arg num_tests)"/>
-    <param  name="base_frame" value="world"/>
-    <param  name="tool_frame" value="edo_link_ee"/>
     <param  name="plan_group" value="edo"/>
     <param  name="ctrl_ns" value="edo"/>
+    <param  name="stap_warp/base_frame" value="edo_base_link"/>
+    <param  name="stap_warp/tool_frame" value="edo_link_ee_tip"/>
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg     if="$(arg debug)" name="launch_prefix"
            value="gdb --ex run --args" /> 

@@ -26,5 +26,7 @@ class stap_warper {
         ros::Subscriber scale_time_sub;
         double path_time_pct = 0.0;
         ros::Publisher warp_pub;
+        int warp_iterations = 1;
+        double attraction = 0.0001;
 
 };
