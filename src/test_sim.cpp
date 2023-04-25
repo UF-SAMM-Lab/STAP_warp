@@ -605,7 +605,7 @@ int main(int argc, char** argv) {
               ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
               move_group.asyncExecute(plans[i]);
               while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-                stap_warp.warp(plans[i],model_->joint_seq,(ros::Time::now()-p_start).toSec(),rec.joint_pos_vec);
+                stap_warp.warp(plans[i],model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.2,0.0),rec.joint_pos_vec);
                 ros::Duration(0.1).sleep();
               }
             } else {

@@ -57,6 +57,7 @@ void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
 }
 
 void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose) {
+    
     if (path_time_pct>=1.0) return;
     double path_time = path_time_pct*plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
     std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
@@ -105,7 +106,6 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
             Eigen::VectorXd diff = poses[p]-poses[p-1];
             int num_steps = 1;
             if (!first_pass) num_steps = std::max(std::ceil(diff.norm()/0.1),1.0);
-            first_pass = true;
             // std::cout<<"num steps:"<<num_steps<<std::endl;
             double nominal_time = wp_times[p]-wp_times[p-1];
             // std::cout<<"nominal time:"<<nominal_time<<std::endl;
@@ -127,7 +127,6 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
                 // Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_pose);
                 ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
                 std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_pose,dq);
-                // std::cout<<"scale_vects:"<<scale_vects.size()<<std::endl;
                 Eigen::VectorXd tau(diff.size());
                 tau.setZero();
                 for (int j=2;j<scale_vects.size();j++) {
@@ -141,12 +140,13 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
                 new_wpt_times.push_back(nom_time);
             }
         }
+        first_pass = true;
         new_poses.push_back(poses.back());
         new_wpt_times.push_back(wp_times.back());
         poses = new_poses;
         wp_times = new_wpt_times;
         for (int i=1;i<poses.size()-1;i++) {
-          poses[i] = 0.333*(poses[i-1]+poses[i]+poses[i+1]);
+          poses[i] = 0.5*(poses[i-1]+poses[i]);//+poses[i+1]);
         }
     }
 
