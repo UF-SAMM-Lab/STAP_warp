@@ -180,3 +180,135 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     }
     warp_pub.publish(mkr);
 }
+
+void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> vel_profile) {
+  vel_profile.clear();
+  double last_end_time = 0.0;
+  for (int i=1;i<plan.points.size();i++) {
+    Eigen::ArrayXd q_start(plan.points[i-1].positions.size());
+    for (int q=0;q<q_start.size();q++) q_start[q] = plan.points[i-1].positions[q];
+    Eigen::ArrayXd q_end(plan.points[i].positions.size());
+    for (int q=0;q<q_end.size();q++) q_end[q] = plan.points[i].positions[q];
+    Eigen::ArrayXd q_dot_start(plan.points[i-1].positions.size());
+    for (int q=0;q<q_dot_start.size();q++) q_dot_start[q] = plan.points[i-1].velocities[q];
+    Eigen::ArrayXd q_dot_end(plan.points[i].positions.size());
+    for (int q=0;q<q_dot_end.size();q++) q_dot_end[q] = plan.points[i].velocities[q];
+    Eigen::ArrayXd diff = q_end-q_start;
+    Eigen::ArrayXd abs_diff = diff.abs();
+    Eigen::ArrayXd sgn = Eigen::ArrayXd::Zero(abs_diff.size());
+    for (int q=0;q<sgn.size();q++) sgn[q] = 1.0*(diff[i]>0.0)-1.0*(diff[i]<0.0);
+    Eigen::ArrayXd times_acc_to_full_speed = ((sgn*max_vels_-q_dot_start)/max_accels_).abs();
+    double time_acc_to_full_speed = times_acc_to_full_speed.maxCoeff();
+    Eigen::ArrayXd times_to_decc_from_full_speed = ((sgn*max_vels_-q_dot_end)/max_accels_).abs();
+    double time_to_decc_from_full_speed = times_to_decc_from_full_speed.matrix().maxCoeff();
+    Eigen::ArrayXd dq_to_full_speed = 0.5*sgn*max_accels_*times_acc_to_full_speed*times_acc_to_full_speed+q_dot_start*times_acc_to_full_speed;
+    Eigen::ArrayXd dq_full_to_next_speed = -0.5*sgn*max_accels_*times_to_decc_from_full_speed*times_to_decc_from_full_speed+max_vels_*times_to_decc_from_full_speed;
+    Eigen::ArrayXd dq_tot = dq_to_full_speed+dq_full_to_next_speed;
+    Eigen::ArrayXd full_spd_q = diff.abs()-dq_tot.abs();
+    Eigen::ArrayXd times_at_full_spd = full_spd_q/max_vels_;
+    Eigen::ArrayXd full_spd_tot_times = times_at_full_spd+times_acc_to_full_speed+times_to_decc_from_full_speed;
+    double full_spd_tot_time = 0.0;
+    int full_spd_jnt = 0;
+    for (int q=0;q<times_acc_to_full_speed.size();q++) {
+      if (full_spd_tot_times[q]>full_spd_tot_time) {
+        full_spd_tot_time = full_spd_tot_times[q];
+        full_spd_jnt = q;
+      }
+    }
+    Eigen::ArrayXb may_go_too_fast = (full_spd_tot_time*q_dot_start).array().abs()>abs_diff.array();
+    for (int q=0;q<may_go_too_fast.size();q++) {
+      if (may_go_too_fast[q]) sgn[q]=-sgn[q];
+    }
+    Eigen::ArrayXd accel_stop_time = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd deccel_start_time = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd accelerations = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd deccelerations = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd t1_ = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd t2_ = Eigen::ArrayXd::Zeros(6);
+    Eigen::ArrayXd alt_a = Eigen::ArrayXd::Zeros(6);
+
+    Eigen::ArrayXb spd_limit_jnts = Eigen::ArrayXb::Constant(6,true);
+    if (times_at_full_spd[full_spd_jnt]>0) {
+      spd_limit_jnts[full_spd_jnt] = false;
+      accelerations[full_spd_jnt] = max_accels_[full_spd_jnt];
+      deccelerations[full_spd_jnt] = max_accels_[full_spd_jnt];
+      accel_stop_time[full_spd_jnt] = times_to_acc_to_full_speed[full_spd_jnt];
+      deccel_start_time[full_spd_jnt] = times_to_acc_to_full_speed[full_spd_jnt]+times_at_full_spd[full_spd_jnt];
+      double mid_t = times_to_acc_to_full_speed[full_spd_jnt]+0.5*times_at_full_spd[full_spd_jnt];
+      c = (sgn*max_vels_-q_dot_start)/(sgn*max_vels_-q_dot_end);
+      t2_ = (diff-full_spd_tot_time*sgn*max_vels_)/(0.5*(c*c-1)*(q_dot_end-q_dot_start)/(c-1)+c*(q_dot_start-sgn*max_vels_));
+      Eigen::ArrayXd alt_t2 = (diff-full_spd_tot_time*sgn*max_vels_)/(q_dot_start-sgn*max_vels_);
+      for (int q=0;q<t2_.size();q++) {
+        if (c[q]==1.0) {
+          t2_[q] = alt_t2[q];
+        }
+      }
+      t1_ = c*t2_;
+      alt_a = ((q_dot_end-q_dot_start)/(c-1)/t2_).abs();
+      Eigen::ArrayXd alt_alt_a = ((sgn*max_vels_-q_dot_start)/c/t2_).abs();
+      for (int q=0;q<t2_.size();q++) {
+        if (c[q]==1.0) {
+          alt_a[q] = alt_alt_a[q];
+        }
+      }
+    }
+    Eigen::ArrayXd qm_dot = max_vels_;
+    while ((qm_dot>0).all()) {
+      Eigen::ArrayXd tm = (qm_dot-q_dot_start)/max_accels_;
+      Eigen::ArrayXd t_fm = (qm_dot-q_dot_end)/max_accels_;
+      Eigen::ArrayXd diff2 = 0.5*max_accels_*(tm*tm-t_fm*t_fm)+qm_dot*t_fm+q_dot_start*tm;
+      Eigen::ArrayXb diff_bool = ((abs_diff-diff2)>=0);
+      if (diff_bool.all()) break;
+      for (int q=0;q<qm_dot.size();q++) {
+        if (!diff_bool[q]) qm_dot[q]-=0.01;
+      }
+    }
+    Eigen::ArrayXd tot_time = tm_+t_fm;
+    double max_tot_time = 0.0;
+    int limit_joint = 0;
+    for (int q=0;q<tot_time.size();q++) {
+      if (tot_time[q]>max_tot_time) {
+        max_tot_time = tot_time[q];
+        limit_joint = q;
+      }
+    }
+    double mid_time = tm[limit_joint];
+    double end_time = tot_time[limit_joint];
+    if (times_at_full_spd[full_spd_jnt]>0) {
+      end_time = full_spd_tot_time;
+      mid_time = 0.5*end_time;
+    }
+    Eigen::MatrixXd knowns = Eigen::MatrixXd::Zero(2,diff.size());
+    knowns.row(0) = (diff-end_time*q_dot_start).matrix();
+    knowns.row(1) = (q_dot_end-q_dot_start).matrix();
+    Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2,2);
+    A(0,0) = 0.5*mid_time*mid_time*(end_time-mid_time);
+    A(0,1) = -0.5*(end_time-mid_time)*(end_time-mid_time);
+    A(1,0) = mid_time;
+    A(1,1) = -(end_time-mid_time);
+    Eigen::MatrixXd a_d = A.inverse()*knowns;
+    for (int q=0;q<spd_limit_jnts.size();q++) {
+      if (spd_limit_jnts[q]) {
+        accelerations[q] = abs(a_d(0,q));
+        deccelerations[q] = abs(a_d(1,q));
+        accel_stop_time[q] = mid_time;
+        deccel_start_time[q] = mid_time;
+      }
+    }
+    Eigen::ArrayXd mid_spds = q_dot_start+a_d.row(0).array()*mid_time;
+    Eigen::ArrayXb mid_spds_too_high = Eigen::ArrayXb::Constant(6,false);
+    Eigen::ArrayXb tmp_comparitor = (mid_spds.abs()>max_vels_);
+    for (int q=0;q<mid_spds_too_high.size();q++) {
+      if (spd_limit_jnts[q] && tmp_comparitor[q]) {
+          accel_stop_time[q] = t1_[q];
+          deccel_start_time[q] = full_spd_tot_time-t2_[q];
+          accelerations[q] = a2_[q];
+          deccelerations[q] = a2_[q];
+      }
+    }
+
+    plan.points[i].time_from_start = end_time + last_end_time;
+    vel_profile.emplace_back(sgn*accelerations,-1.0*sgn*deccelerations,accel_stop_time+last_end_time,deccel_start_time+last_end_time);
+  }
+}
+
