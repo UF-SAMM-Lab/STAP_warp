@@ -1,6 +1,6 @@
 #include <stap_warp/stap_warp.h>
-
-stap_warper::stap_warper(ros::NodeHandle nh):nh(nh) {
+namespace stap {
+stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state):nh(nh),state(state) {
     urdf::Model robo_model;
     robo_model.initParam("robot_description");
     std::string base_frame_ = "world";
@@ -50,8 +50,6 @@ stap_warper::stap_warper(ros::NodeHandle nh):nh(nh) {
     } else {
       ROS_INFO_STREAM("warp_iterations:"<<warp_iterations);
     }
-    max_vels_<<1.5,1.5,1.5,1.5,1.5,1.5;
-    max_accels_<<1.5,1.5,1.5,1.5,1.5,1.5;
 }
 
 void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
@@ -155,11 +153,11 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     std::cout<<"new poses:\n";
     for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     
-    trajectory_msgs::JointTrajectory plan;
+    trajectory_msgs::JointTrajectory new_plan;
     for (int i=0;i<poses.size();i++) {
       trajectory_msgs::JointTrajectoryPoint pt;
       for (int j=0;j<6;j++) pt.positions.push_back(poses[i][6]);
-      plan.points.push_back(pt);
+      new_plan.points.push_back(pt);
     }
     visualization_msgs::Marker mkr;
     mkr.header.frame_id = "world";
@@ -179,13 +177,16 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
 
     warp_pub.publish(mkr);
     for (int i=0;i<poses.size();i++) {
-      Eigen::Affine3d T_base_tool = chain_->getTransformation(poses[i]);
-      Eigen::Vector3d ee = T_base_tool.translation();
-      geometry_msgs::Point pt;
-      pt.x = ee[0];
-      pt.y = ee[1];
-      pt.z = ee[2];
-      mkr.points.push_back(pt);
+      state->setJointGroupPositions("edo",poses[i]);
+      geometry_msgs::Pose pose;
+      tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+      // Eigen::Affine3d T_base_tool = chain_->getTransformation(poses[i]);
+      // Eigen::Vector3d ee = T_base_tool.translation();
+      // geometry_msgs::Point pt;
+      // pt.x = ee[0];
+      // pt.y = ee[1];
+      // pt.z = ee[2];
+      mkr.points.push_back(pose.position);
     }
     warp_pub.publish(mkr);
 }
@@ -194,6 +195,7 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
   vel_profile.clear();
   double last_end_time = 0.0;
   for (int i=1;i<plan.points.size();i++) {
+    std::cout<<"starting: "<<i<<std::endl;
     Eigen::ArrayXd q_start(plan.points[i-1].positions.size());
     for (int q=0;q<q_start.size();q++) q_start[q] = plan.points[i-1].positions[q];
     Eigen::ArrayXd q_end(plan.points[i].positions.size());
@@ -204,14 +206,15 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
     for (int q=0;q<q_dot_end.size();q++) q_dot_end[q] = plan.points[i].velocities[q];
     Eigen::ArrayXd diff = q_end-q_start;
     Eigen::ArrayXd abs_diff = diff.abs();
-    Eigen::ArrayXd sgn = Eigen::ArrayXd::Zero(abs_diff.size());
-    for (int q=0;q<sgn.size();q++) sgn[q] = 1.0*(diff[i]>0.0)-1.0*(diff[i]<0.0);
-    Eigen::ArrayXd times_acc_to_full_speed = ((sgn*max_vels_-q_dot_start)/max_accels_).abs();
+    Eigen::ArrayXd sgn1 = Eigen::ArrayXd::Zero(abs_diff.size());
+    for (int q=0;q<sgn1.size();q++) sgn1[q] = 1.0*(diff[q]>0.0)-1.0*(diff[q]<0.0);
+    std::cout<<"sgn1"<<sgn1<<std::endl;
+    Eigen::ArrayXd times_acc_to_full_speed = ((sgn1*max_vels_-q_dot_start)/max_accels_).abs();
     double time_acc_to_full_speed = times_acc_to_full_speed.maxCoeff();
-    Eigen::ArrayXd times_to_decc_from_full_speed = ((sgn*max_vels_-q_dot_end)/max_accels_).abs();
+    Eigen::ArrayXd times_to_decc_from_full_speed = ((sgn1*max_vels_-q_dot_end)/max_accels_).abs();
     double time_to_decc_from_full_speed = times_to_decc_from_full_speed.matrix().maxCoeff();
-    Eigen::ArrayXd dq_to_full_speed = 0.5*sgn*max_accels_*times_acc_to_full_speed*times_acc_to_full_speed+q_dot_start*times_acc_to_full_speed;
-    Eigen::ArrayXd dq_full_to_next_speed = -0.5*sgn*max_accels_*times_to_decc_from_full_speed*times_to_decc_from_full_speed+max_vels_*times_to_decc_from_full_speed;
+    Eigen::ArrayXd dq_to_full_speed = 0.5*sgn1*max_accels_*times_acc_to_full_speed*times_acc_to_full_speed+q_dot_start*times_acc_to_full_speed;
+    Eigen::ArrayXd dq_full_to_next_speed = -0.5*sgn1*max_accels_*times_to_decc_from_full_speed*times_to_decc_from_full_speed+sgn1*max_vels_*times_to_decc_from_full_speed;
     Eigen::ArrayXd dq_tot = dq_to_full_speed+dq_full_to_next_speed;
     Eigen::ArrayXd full_spd_q = diff.abs()-dq_tot.abs();
     Eigen::ArrayXd times_at_full_spd = full_spd_q/max_vels_;
@@ -225,9 +228,9 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
       }
     }
     ArrayXb may_go_too_fast = (full_spd_tot_time*q_dot_start).array().abs()>abs_diff.array();
-    for (int q=0;q<may_go_too_fast.size();q++) {
-      if (may_go_too_fast[q]) sgn[q]=-sgn[q];
-    }
+    // for (int q=0;q<may_go_too_fast.size();q++) {
+    //   if (may_go_too_fast[q]) sgn1[q]=-sgn1[q];
+    // }
     Eigen::ArrayXd accel_stop_time = Eigen::ArrayXd::Zero(6);
     Eigen::ArrayXd deccel_start_time = Eigen::ArrayXd::Zero(6);
     Eigen::ArrayXd accelerations = Eigen::ArrayXd::Zero(6);
@@ -244,9 +247,9 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
       accel_stop_time[full_spd_jnt] = times_acc_to_full_speed[full_spd_jnt];
       deccel_start_time[full_spd_jnt] = times_acc_to_full_speed[full_spd_jnt]+times_at_full_spd[full_spd_jnt];
       double mid_t = times_acc_to_full_speed[full_spd_jnt]+0.5*times_at_full_spd[full_spd_jnt];
-      Eigen::ArrayXd c = (sgn*max_vels_-q_dot_start)/(sgn*max_vels_-q_dot_end);
-      t2_ = (diff-full_spd_tot_time*sgn*max_vels_)/(0.5*(c*c-1)*(q_dot_end-q_dot_start)/(c-1)+c*(q_dot_start-sgn*max_vels_));
-      Eigen::ArrayXd alt_t2 = (diff-full_spd_tot_time*sgn*max_vels_)/(q_dot_start-sgn*max_vels_);
+      Eigen::ArrayXd c = (sgn1*max_vels_-q_dot_start)/(sgn1*max_vels_-q_dot_end);
+      t2_ = (diff-full_spd_tot_time*sgn1*max_vels_)/(0.5*(c*c-1)*(q_dot_end-q_dot_start)/(c-1)+c*(q_dot_start-sgn1*max_vels_));
+      Eigen::ArrayXd alt_t2 = (diff-full_spd_tot_time*sgn1*max_vels_)/(q_dot_start-sgn1*max_vels_);
       for (int q=0;q<t2_.size();q++) {
         if (c[q]==1.0) {
           t2_[q] = alt_t2[q];
@@ -254,21 +257,32 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
       }
       t1_ = c*t2_;
       alt_a = ((q_dot_end-q_dot_start)/(c-1)/t2_).abs();
-      Eigen::ArrayXd alt_alt_a = ((sgn*max_vels_-q_dot_start)/c/t2_).abs();
+      Eigen::ArrayXd alt_alt_a = ((sgn1*max_vels_-q_dot_start)/c/t2_).abs();
       for (int q=0;q<t2_.size();q++) {
         if (c[q]==1.0) {
           alt_a[q] = alt_alt_a[q];
         }
       }
     }
+    std::cout<<"full spd time:"<<full_spd_tot_time<<std::endl;
     Eigen::ArrayXd qm_dot = max_vels_;
     Eigen::ArrayXd tm;
     Eigen::ArrayXd t_fm;
+    Eigen::ArrayXd sgn = sgn1;
+    Eigen::ArrayXd avg_spd_times = abs_diff/(0.5*(q_dot_end+q_dot_start).abs());
     while ((qm_dot>0).all()) {
-      tm = (qm_dot-q_dot_start)/max_accels_;
-      t_fm = (qm_dot-q_dot_end)/max_accels_;
+      sgn = sgn1;
+      tm = (sgn*qm_dot-q_dot_start).abs()/max_accels_;
+      t_fm = (sgn*qm_dot-q_dot_end).abs()/max_accels_;
+      for (int q=0;q<tm.size();q++) {
+        if (spd_limit_jnts[q]) {
+          if ((tm[q]+t_fm[q])>avg_spd_times[q]) sgn[q] = -sgn1[q];
+        }
+      }
+      tm = (sgn*qm_dot-q_dot_start).abs()/max_accels_;
+      t_fm = (sgn*qm_dot-q_dot_end).abs()/max_accels_;
       Eigen::ArrayXd diff2 = 0.5*max_accels_*(tm*tm-t_fm*t_fm)+qm_dot*t_fm+q_dot_start*tm;
-      ArrayXb diff_bool = ((abs_diff-diff2)>=0);
+      ArrayXb diff_bool = ((abs_diff-diff2.abs())>=0);
       if (diff_bool.all()) break;
       for (int q=0;q<qm_dot.size();q++) {
         if (!diff_bool[q]) qm_dot[q]-=0.01;
@@ -293,11 +307,14 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
     knowns.row(0) = (diff-end_time*q_dot_start).matrix();
     knowns.row(1) = (q_dot_end-q_dot_start).matrix();
     Eigen::MatrixXd A = Eigen::MatrixXd::Zero(2,2);
-    A(0,0) = 0.5*mid_time*mid_time*(end_time-mid_time);
+    A(0,0) = 0.5*mid_time*mid_time+mid_time*(end_time-mid_time);
     A(0,1) = -0.5*(end_time-mid_time)*(end_time-mid_time);
     A(1,0) = mid_time;
     A(1,1) = -(end_time-mid_time);
     Eigen::MatrixXd a_d = A.inverse()*knowns;
+    std::cout<<"knowns"<<knowns<<std::endl;
+    std::cout<<"A"<<A<<std::endl;
+    std::cout<<"a_d"<<a_d<<std::endl;
     for (int q=0;q<spd_limit_jnts.size();q++) {
       if (spd_limit_jnts[q]) {
         accelerations[q] = abs(a_d(0,q));
@@ -306,20 +323,31 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
         deccel_start_time[q] = mid_time;
       }
     }
-    Eigen::ArrayXd mid_spds = q_dot_start+a_d.row(0).array()*mid_time;
-    ArrayXb mid_spds_too_high = ArrayXb::Constant(6,false);
+    Eigen::ArrayXd mid_spds = q_dot_start+mid_time*a_d.row(0).transpose().array();
     ArrayXb tmp_comparitor = (mid_spds.abs()>max_vels_);
-    for (int q=0;q<mid_spds_too_high.size();q++) {
+    for (int q=0;q<6;q++) {
       if (spd_limit_jnts[q] && tmp_comparitor[q]) {
           accel_stop_time[q] = t1_[q];
           deccel_start_time[q] = full_spd_tot_time-t2_[q];
           accelerations[q] = alt_a[q];
           deccelerations[q] = alt_a[q];
+          std::cout<<q<<",a:"<<accelerations[q]<<std::endl;
+          std::cout<<q<<",d:"<<deccelerations[q]<<std::endl;
       }
     }
-
+    if (times_at_full_spd[full_spd_jnt]>0) {
+      mid_spds[full_spd_jnt] = sgn[full_spd_jnt]*max_vels_[full_spd_jnt];
+    }
+    std::cout<<"end time:"<<end_time<<std::endl;
+    std::cout<<sgn<<std::endl;
+    std::cout<<accelerations<<std::endl;
+    std::cout<<accel_stop_time<<std::endl;
+    std::cout<<deccelerations<<std::endl;
+    std::cout<<deccel_start_time<<std::endl;
     plan.points[i].time_from_start = ros::Duration(end_time + last_end_time);
     vel_profile.emplace_back(sgn*accelerations,-1.0*sgn*deccelerations,accel_stop_time+last_end_time,deccel_start_time+last_end_time);
+    last_end_time += end_time;
   }
 }
 
+}

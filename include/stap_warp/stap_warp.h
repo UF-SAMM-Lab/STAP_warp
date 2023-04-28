@@ -10,12 +10,13 @@
 #include <std_msgs/Float64.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Point.h>
+#include <eigen_conversions/eigen_msg.h>
 
 typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
-
+namespace stap {
 class stap_warper {
     public:
-        stap_warper(ros::NodeHandle nh);
+        stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state);
         void warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose);
         void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
@@ -31,7 +32,9 @@ class stap_warper {
         ros::Publisher warp_pub;
         int warp_iterations = 1;
         double attraction = 0.0001;
-        Eigen::ArrayXd max_vels_;
-        Eigen::ArrayXd max_accels_;
+        Eigen::ArrayXd max_vels_ = Eigen::ArrayXd::Constant(6,1.5);
+        Eigen::ArrayXd max_accels_ = Eigen::ArrayXd::Constant(6,1.5);
+        robot_state::RobotStatePtr state;
 
 };
+}

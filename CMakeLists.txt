@@ -72,6 +72,15 @@ target_link_libraries(test_sim
 add_dependencies(test_sim ${catkin_EXPORTED_TARGETS})
 install(TARGETS test_sim DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(blend_test src/blend_test.cpp)
+target_link_libraries(blend_test
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  torch
+)
+add_dependencies(blend_test ${catkin_EXPORTED_TARGETS})
+install(TARGETS blend_test DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #############
 ## Install ##
 #############
