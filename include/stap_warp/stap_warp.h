@@ -11,10 +11,13 @@
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Point.h>
 
+typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
+
 class stap_warper {
     public:
         stap_warper(ros::NodeHandle nh);
         void warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose);
+        void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
         void scale_time_callback(const std_msgs::Float64::ConstPtr& msg);
         ssm15066::DeterministicSSMPtr ssm;
@@ -28,5 +31,7 @@ class stap_warper {
         ros::Publisher warp_pub;
         int warp_iterations = 1;
         double attraction = 0.0001;
+        Eigen::ArrayXd max_vels_;
+        Eigen::ArrayXd max_accels_;
 
 };
