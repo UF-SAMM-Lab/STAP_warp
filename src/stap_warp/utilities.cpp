@@ -123,7 +123,7 @@ void human_publisher::empty_poses(void) {
   poses_pub.publish(poses);
 }
 
-data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, avoidance_intervals::skeleton *skel_ptr, moveit::core::RobotModelConstPtr robot_model, robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path):nh_(nh),logFile(log_file_full_path,std::ofstream::app),ps_ptr(planning_scene_ptr),human_link_len_(human_link_len),human_link_radii_(human_link_radii), state_(state), chain_(chain),solvperflogFile(solvperflog_file_full_path,std::ofstream::app) {
+data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, avoidance_intervals::skeleton *skel_ptr, moveit::core::RobotModelConstPtr robot_model, robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path):nh_(nh),logFile(log_file_full_path,std::ofstream::app),ps_ptr(planning_scene_ptr),human_link_len_(human_link_len),human_link_radii_(human_link_radii), state_(state), chain_(chain),solvperflogFile(solvperflog_file_full_path,std::ofstream::app),jsLogFile("joint_state_record.csv",std::ofstream::trunc) {
   
     ready_ = false;
   spd_sub = nh_.subscribe<std_msgs::Int64>("/safe_ovr_1",1,&data_recorder::spd_callback,this);
@@ -146,6 +146,7 @@ data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, 
 
   skel = skel_ptr;
   min_distance = std::numeric_limits<double>::max();
+  log_start_time = ros::Time::now();
 
 }
 
@@ -238,6 +239,11 @@ void data_recorder::jnt_state_callback(const sensor_msgs::JointState::ConstPtr& 
     joint_state_ready = true;
     std::lock_guard<std::mutex> lck(mtx2);
     tangential_speed = tmp_tangential_speed;
+    jsLogFile<<(ros::Time::now()-log_start_time).toSec()<<",";
+    for (int i=0;i<n_dof_;i++) jsLogFile << joint_positions[i]<<",";
+    for (int i=0;i<n_dof_;i++) jsLogFile << joint_velocities[i]<<",";
+    for (int i=0;i<n_dof_;i++) jsLogFile << joint_accelerations[i]<<",";
+    jsLogFile <<"\n";
 }
 void data_recorder::pose_callback(const geometry_msgs::PoseArray::ConstPtr& msg) {
     ready_ = true;

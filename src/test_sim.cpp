@@ -604,8 +604,9 @@ int main(int argc, char** argv) {
             if (i==1) {
               ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
               move_group.asyncExecute(plans[i]);
+              ros::Duration(1.0).sleep();
+              stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.2,0.0),rec.joint_pos_vec);
               while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-                stap_warp.warp(plans[i],model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.2,0.0),rec.joint_pos_vec);
                 ros::Duration(0.1).sleep();
               }
             } else {

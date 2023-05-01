@@ -163,6 +163,8 @@ class data_recorder {
   ros::Timer record_timer;
   std::ofstream logFile;
   std::ofstream solvperflogFile;
+  std::ofstream jsLogFile;
+  ros::Time log_start_time = ros::Time::now();
   std::vector<double> human_link_radii_;
   std::vector<double> human_link_len_;
   planning_scene::PlanningScenePtr ps_ptr;
