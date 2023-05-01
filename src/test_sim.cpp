@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
       move_group.setMaxVelocityScalingFactor(1.0);
       move_group.setMaxAccelerationScalingFactor(1.0);
 
-      stap::stap_warper stap_warp(nh,move_group.getCurrentState());
+      stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model);
 
       for (int iter=0;iter<num_tests;iter++) {
         std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;

@@ -1,6 +1,6 @@
 #include <stap_warp/stap_warp.h>
 namespace stap {
-stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state):nh(nh),state(state) {
+stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model):nh(nh),state(state),model(model),move_group("edo") {
     urdf::Model robo_model;
     robo_model.initParam("robot_description");
     std::string base_frame_ = "world";
@@ -32,6 +32,7 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state):n
     for (int i=0;i<link_names.size();i++) std::cout<<link_names[i]<<std::endl;
     scale_time_sub = nh.subscribe<std_msgs::Float64>("/execution_ratio",1,&stap_warper::scale_time_callback,this);
     warp_pub = nh.advertise<visualization_msgs::Marker>("/warp_points",1);
+    blend_pub = nh.advertise<trajectory_msgs::JointTrajectory>("/planner_hw/microinterpolator/blend_trajectory",1);
     if (!nh.getParam("/warp_repulsion",repulsion))
     {
       ROS_WARN("repulsion is not defined");
@@ -57,7 +58,7 @@ void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
 }
 
 void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &plan, std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose) {
-    
+    std::cout<<"cur pose:"<<cur_pose.transpose()<<std::endl;
     if (path_time_pct>=1.0) return;
     double path_time = path_time_pct*plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
     std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
@@ -72,15 +73,14 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     for (int i=0;i<pos.size();i++) prev_pose[i] = pos[i];
     double start_time;
     for (int p=1;p<plan.trajectory_.joint_trajectory.points.size();p++) {
-      pos = std::vector<double>(plan.trajectory_.joint_trajectory.points[p].positions);
-      Eigen::VectorXd tmp_vec = Eigen::VectorXd::Zero(pos.size());
-      for (int i=0;i<pos.size();i++) tmp_vec[i] = pos[i];
+      Eigen::VectorXd tmp_vec = Eigen::VectorXd::Zero(plan.trajectory_.joint_trajectory.points[p].positions.size());
+      for (int i=0;i<plan.trajectory_.joint_trajectory.points[p].positions.size();i++) tmp_vec[i] = plan.trajectory_.joint_trajectory.points[p].positions[i];
       if (!in_plan) {
         // std::cout<<plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec()<<","<<plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec()<<","<<path_time<<std::endl;
         if ((path_time>=plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec())&&(path_time<plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec())) {
           start_time = path_time;
-          poses.push_back(cur_pose);
-          wp_times.push_back(0.0);
+          // poses.push_back(cur_pose);
+          // wp_times.push_back(0.0);
           in_plan = true;
         }
 
@@ -154,11 +154,47 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     
     trajectory_msgs::JointTrajectory new_plan;
-    for (int i=0;i<poses.size();i++) {
-      trajectory_msgs::JointTrajectoryPoint pt;
-      for (int j=0;j<6;j++) pt.positions.push_back(poses[i][6]);
-      new_plan.points.push_back(pt);
+    new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
+    Eigen::VectorXd diff = Eigen::VectorXd::Zero(6);
+    trajectory_msgs::JointTrajectoryPoint pt;
+    for (int j=0;j<6;j++) pt.positions.push_back(poses[0][j]);
+    for (int j=0;j<6;j++) pt.velocities.push_back(0.0);
+    for (int j=0;j<6;j++) pt.accelerations.push_back(0.0);
+    for (int j=0;j<6;j++) pt.effort.push_back(0.0);
+    new_plan.points.push_back(pt);
+    for (int i=1;i<poses.size();i++) {
+      Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
+      if ((abs(new_diff.dot(diff))<0.9)&&((poses[i]-cur_pose).norm()>0.1)) {
+        for (int j=0;j<6;j++) pt.positions[j] = poses[i][j];
+        for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
+        for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
+        for (int j=0;j<6;j++) pt.effort[j] = 0.0;
+        new_plan.points.push_back(pt);
+        diff = new_diff;
+      }
     }
+    trajectory_processing::IterativeParabolicTimeParameterization iptp;
+    robot_state::RobotStatePtr state = move_group.getCurrentState();
+    // moveit::core::robotStateToRobotStateMsg(*state,new_plan.start_state_);
+    robot_trajectory::RobotTrajectory trj(model,"edo");
+    trj.setRobotTrajectoryMsg(*state,new_plan);
+    iptp.computeTimeStamps(trj);
+    moveit_msgs::RobotTrajectory trj_msg;
+    trj.getRobotTrajectoryMsg(trj_msg);
+    new_plan = trj_msg.joint_trajectory;
+    new_plan.points.erase(new_plan.points.begin());
+    // new_plan.points.erase(new_plan.points.begin());
+
+    std::cout<<"new plan:\n";
+    for (int i=0;i<new_plan.points.size();i++) {
+      for (int j=0;j<6;j++) std::cout<<new_plan.points[i].positions[j]<<",";
+      std::cout<<std::endl;
+    }
+
+
+    new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
+    blend_pub.publish(new_plan);
+
     visualization_msgs::Marker mkr;
     mkr.header.frame_id = "world";
     mkr.id = 10000;
@@ -192,6 +228,7 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
 }
 
 void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile) {
+ 
   vel_profile.clear();
   double last_end_time = 0.0;
   for (int i=1;i<plan.points.size();i++) {
