@@ -73,7 +73,7 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     for (int i=0;i<pos.size();i++) prev_pose[i] = pos[i];
     double start_time;
     for (int p=1;p<plan.trajectory_.joint_trajectory.points.size();p++) {
-      Eigen::VectorXd tmp_vec = Eigen::VectorXd::Zero(plan.trajectory_.joint_trajectory.points[p].positions.size());
+      Eigen::VectorXd tmp_vec(plan.trajectory_.joint_trajectory.points[p].positions.size());
       for (int i=0;i<plan.trajectory_.joint_trajectory.points[p].positions.size();i++) tmp_vec[i] = plan.trajectory_.joint_trajectory.points[p].positions[i];
       if (!in_plan) {
         // std::cout<<plan.trajectory_.joint_trajectory.points[p-1].time_from_start.toSec()<<","<<plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec()<<","<<path_time<<std::endl;
@@ -87,6 +87,7 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
       }
       if (in_plan) {
         poses.push_back(tmp_vec);
+        std::cout<<"poses:"<<tmp_vec.transpose()<<std::endl;
         wp_times.push_back(plan.trajectory_.joint_trajectory.points[p].time_from_start.toSec()-start_time);
       }
       prev_pose = tmp_vec;
@@ -164,7 +165,7 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     new_plan.points.push_back(pt);
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if ((abs(new_diff.dot(diff))<0.9)&&((poses[i]-cur_pose).norm()>0.1)) {
+      if (((abs(new_diff.dot(diff))<0.9)&&((poses[i]-cur_pose).norm()>0.1))||(i==poses.size()-1)) {
         for (int j=0;j<6;j++) pt.positions[j] = poses[i][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
@@ -182,6 +183,8 @@ void stap_warper::warp(moveit::planning_interface::MoveGroupInterface::Plan &pla
     moveit_msgs::RobotTrajectory trj_msg;
     trj.getRobotTrajectoryMsg(trj_msg);
     new_plan = trj_msg.joint_trajectory;
+    plan.trajectory_.joint_trajectory = new_plan;
+    std::cout<<plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
     new_plan.points.erase(new_plan.points.begin());
     // new_plan.points.erase(new_plan.points.begin());
 
