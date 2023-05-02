@@ -47,6 +47,7 @@ class stap_warper {
         trajectory_msgs::JointTrajectory cur_traj;
         std::mutex trj_mtx;
         ros::Time last_warp_time = ros::Time::now();
+        std::vector<int> scale_vect_ids;
 
 };
 }

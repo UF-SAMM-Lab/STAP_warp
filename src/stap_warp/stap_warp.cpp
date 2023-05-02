@@ -54,6 +54,7 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
     } else {
       ROS_INFO_STREAM("warp_iterations:"<<warp_iterations);
     }
+    scale_vect_ids = {3,4,5,8};
 }
 
 void stap_warper::act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj) {
@@ -153,7 +154,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_q,dq);
                 Eigen::VectorXd tau(diff.size());
                 tau.setZero();
-                for (int j=2;j<scale_vects.size();j++) {
+                for (int jj=0;jj<scale_vect_ids.size();jj++) {
+                  int j = scale_vect_ids[jj];
                   Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
                   Eigen::VectorXd tmp_tau = repulsion*(1.0-scale_vects[j].first)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
                   // Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.1)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
@@ -247,7 +249,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     diff = (poses[1]-poses[0]).normalized();
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if (((abs(new_diff.dot(diff))<0.5)&&((poses[i]-cur_pose).norm()>0.2))) {
+      if (((abs(new_diff.dot(diff))<0.99)&&((poses[i]-cur_pose).norm()>0.2))) {
         for (int j=0;j<6;j++) pt.positions[j] = poses[i-1][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;

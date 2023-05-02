@@ -606,7 +606,7 @@ int main(int argc, char** argv) {
               move_group.asyncExecute(plans[i]);
               ros::Duration(0.1).sleep();
               while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-                stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.5,0.0),rec.joint_pos_vec,rec.get_current_joint_state());
+                stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.0,0.0),rec.joint_pos_vec,rec.get_current_joint_state());
                 ros::Duration(0.1).sleep();
               }
             } else {
