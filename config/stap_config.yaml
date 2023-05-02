@@ -1,3 +1,9 @@
-warp_repulsion: 0.001
-warp_attraction: 0.00
-warp_iterations: 1
+warp:
+  repulsion: 0.01
+  attraction: 0.01
+  table_repulsion: 0.02
+  smooth_steps: 2
+  iterations: 1
+  table_tolerance: 0.07
+  connection_tol: 0.9
+  cycle_time: 0.1

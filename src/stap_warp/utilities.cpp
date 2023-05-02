@@ -31,14 +31,14 @@ human_publisher::human_publisher(ros::NodeHandle nh, bool sim):nh_(nh) {
     }
 }
 
-void human_publisher::start_show_human(void) {
+void human_publisher::start_show_human(double start_time2) {
   start_time = ros::Time::now();
-  show_human_elapsed_time = 0.0;
+  show_human_elapsed_time = start_time2;
   show_human_timer.start();
 }
-void human_publisher::start_poses(void) {
+void human_publisher::start_poses(double start_time2) {
   start_time = ros::Time::now();
-  pub_poses_elapsed_time = 0.0;
+  pub_poses_elapsed_time = start_time2;
   pub_poses_timer.start();
 }
 void human_publisher::stop_show_human(void) {
@@ -64,8 +64,9 @@ void human_publisher::show_human_thread(const ros::TimerEvent& event) {
   start_time = ros::Time::now();
 }
 void human_publisher::pub_poses_thread(const ros::TimerEvent& event) {
+  std::cout<<"pub_poses_elapsed_time:"<<pub_poses_elapsed_time<<std::endl;
   pub_poses_elapsed_time += (event.current_real-pose_start_time).toSec();
-  geometry_msgs::PoseArray poses = skel->get_pose_at_time(pub_poses_elapsed_time);
+  geometry_msgs::PoseArray poses = skel->get_pose_at_time(std::max(pub_poses_elapsed_time,0.0));
   geometry_msgs::Pose p;
   if (poses.poses.size()>1) {
     p.position.x = 0.5*(poses.poses[0].position.x+poses.poses[1].position.x);
@@ -104,7 +105,7 @@ void human_publisher::pub_poses_thread(const ros::TimerEvent& event) {
     }
     skel_pub.publish(skel_pts_msg);
 
-    std::vector<Eigen::Quaternionf> human_quats = skel->get_quats_at_time(pub_poses_elapsed_time);
+    std::vector<Eigen::Quaternionf> human_quats = skel->get_quats_at_time(std::max(pub_poses_elapsed_time,0.0));
   std_msgs::Float32MultiArray skel_quats_msg;
     for (int i=0;i<4;i++) skel_quats_msg.data.push_back(0.0);
     for (int i=0;i<human_quats.size();i++) {
@@ -479,7 +480,7 @@ humanCollisionObjects::humanCollisionObjects(ros::NodeHandle node_handle, const 
 
 void humanCollisionObjects::update_timer(const ros::TimerEvent& event) {
   elapsed_time += (event.current_real-timer_start).toSec();
-  updateCollisionObjects(elapsed_time);
+  updateCollisionObjects(std::max(elapsed_time,0.0));
   timer_start = ros::Time::now();
 }
 
@@ -525,15 +526,15 @@ void humanCollisionObjects::inflate_live_obs(void) {
   for (int i=0;i<link_radii_.size();i++) act_radii[i] = link_radii_[i]+min_dist_;
 }
 
-void humanCollisionObjects::start_obs(void) {
-  elapsed_time = 0.0;
+void humanCollisionObjects::start_obs(double start_time) {
+  elapsed_time = start_time;
   resume_obs();
 }
 void humanCollisionObjects::resume_obs(void) {
   inflate = false;
   removeHumans();
   for (int i=0;i<link_radii_.size();i++) act_radii[i] = link_radii_[i];
-  updateCollisionObjects(elapsed_time);
+  updateCollisionObjects(std::max(elapsed_time,0.0));
   timer_start = ros::Time::now();
   udpate_timer = nh.createTimer(ros::Duration(1.0/10.0), &humanCollisionObjects::update_timer, this);
 }
@@ -542,7 +543,7 @@ void humanCollisionObjects::inflate_obs(void) {
   udpate_timer.stop();
   removeHumans();
   for (int i=0;i<link_radii_.size();i++) act_radii[i] = link_radii_[i]+min_dist_;
-  updateCollisionObjects(elapsed_time);
+  updateCollisionObjects(std::max(elapsed_time,0.0));
 }
 
 void humanCollisionObjects::pause_obs(void) {

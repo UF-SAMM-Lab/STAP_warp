@@ -70,7 +70,7 @@ class humanCollisionObjects {
         void start_live_obs(void);
         void inflate_obs(void);
         void resume_obs(void);
-        void start_obs(void);
+        void start_obs(double start_time=0.0);
         bool inflate = true;
         ros::Subscriber sub_live_quats;
         void stop_live_obs(void);
@@ -96,10 +96,10 @@ class human_publisher {
   void show_human_thread(const ros::TimerEvent& event);
   void pub_poses_thread(const ros::TimerEvent& event);
   void empty_poses(void);
-  void start_show_human(void);
+  void start_show_human(double start_time2=0.0);
   void stop_show_human(void);
   void resume_show_human(void);
-  void start_poses(void);
+  void start_poses(double start_time2=0.0);
   void stop_poses(void);
   void resume_poses(void);
   avoidance_intervals::skeleton *skel;

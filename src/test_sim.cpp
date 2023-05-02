@@ -58,6 +58,11 @@ int main(int argc, char** argv) {
     {
       ROS_WARN("grid_spacing is not defined");
     }
+    double stap_offset=0.00;
+    if (!nh.getParam("/stap_offset",stap_offset))
+    {
+      ROS_WARN("stap_offset is not defined");
+    }
 
     avoidance_intervals::modelPtr model_ = std::make_shared<avoidance_intervals::model>(workspace_lb,workspace_ub,grid_spacing,6,nh);
 
@@ -391,7 +396,7 @@ int main(int argc, char** argv) {
         if (pub_occ_centroids) centroids_pub.publish(poses);
 
         show_human.pose_start_time = ros::Time::now();
-        show_human.start_poses();
+        show_human.start_poses(stap_offset);
         ros::Duration(0.1).sleep();
         show_human.stop_poses();
         ros::Duration(5.0).sleep();
@@ -449,6 +454,7 @@ int main(int argc, char** argv) {
         test_skeleton.publish_pts(avoid_pts);
         ros::Duration(1.0).sleep();
         bool showing_human = false;
+        ros::Time p_start = ros::Time::now();
         for (int i=0;i<plans.size();i++) {
           if (i==1) {
             // ROS_WARN("Press enter when the human is in place.  When you press enter, the human should repeat the recorded motion.");
@@ -456,8 +462,10 @@ int main(int argc, char** argv) {
           
             show_human.start_time = ros::Time::now();
             show_human.pose_start_time = ros::Time::now();
-            show_human.start_show_human();
-            show_human.start_poses();
+            show_human.start_show_human(stap_offset);
+            show_human.start_poses(stap_offset);
+            co_human.start_obs(stap_offset);
+            p_start = ros::Time::now();
             showing_human = true;
 
             rec.start();
@@ -599,14 +607,15 @@ int main(int argc, char** argv) {
               ros::Duration(0.03).sleep();
             }
           } else {
-            if ((i==1) && ((test_num-3)%5!=0)) co_human.start_obs();
-            ros::Time p_start = ros::Time::now();
+            // if ((i==1) && ((test_num-3)%5!=0)) {
+            //   co_human.start_obs(stap_offset);
+            // }
             if (i==1) {
               ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
               move_group.asyncExecute(plans[i]);
               ros::Duration(0.1).sleep();
               while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-                stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+0.0,0.0),rec.joint_pos_vec,rec.get_current_joint_state());
+                stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec()+stap_offset,0.0),rec.joint_pos_vec,rec.get_current_joint_state());
                 ros::Duration(0.1).sleep();
               }
             } else {

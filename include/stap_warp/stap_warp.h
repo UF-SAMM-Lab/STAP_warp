@@ -22,6 +22,11 @@ class stap_warper {
         void warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js);
         void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
+        Eigen::VectorXd q_max;
+        Eigen::VectorXd q_min;
+        double table_tolerance = 0.05;
+        double connection_tol = 0.98;
+        double cycle_time = 0.1;
         void scale_time_callback(const std_msgs::Float64::ConstPtr& msg);
         void act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj);
         ssm15066::DeterministicSSMPtr ssm;
@@ -30,12 +35,15 @@ class stap_warper {
         ros::NodeHandle nh;
         int max_iters = 1;
         double repulsion = 0.0001;
+        double table_repulsion = 0.01;
+        int smooth_steps=0;
         ros::Subscriber scale_time_sub;
         ros::Subscriber sub_act_trj;
         double path_time_pct = 0.0;
         ros::Publisher warp_pub;
         ros::Publisher warp_pub2;
         ros::Publisher warp_pub3;
+        ros::Publisher warp_pub4;
         ros::Publisher blend_pub;
         int warp_iterations = 1;
         double attraction = 0.0001;
