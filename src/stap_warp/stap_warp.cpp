@@ -32,6 +32,8 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
     for (int i=0;i<link_names.size();i++) std::cout<<link_names[i]<<std::endl;
     scale_time_sub = nh.subscribe<std_msgs::Float64>("/execution_ratio",1,&stap_warper::scale_time_callback,this);
     warp_pub = nh.advertise<visualization_msgs::Marker>("/warp_points",1);
+    warp_pub2 = nh.advertise<visualization_msgs::Marker>("/warp_points2",1);
+    warp_pub3 = nh.advertise<visualization_msgs::Marker>("/warp_points3",1);
     blend_pub = nh.advertise<trajectory_msgs::JointTrajectory>("/planner_hw/microinterpolator/blend_trajectory",1);
     sub_act_trj = nh.subscribe<trajectory_msgs::JointTrajectory>("/planner_hw/microinterpolator/act_trajectory",1,&stap_warper::act_traj_callback,this);
     if (!nh.getParam("/warp_repulsion",repulsion))
@@ -64,7 +66,7 @@ void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
   path_time_pct = msg->data;
 }
 
-void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose) {
+void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js) {
     if ((ros::Time::now()-last_warp_time).toSec()<0.1) return;
     if (cur_traj.points.size()<2) return;
     trj_mtx.lock();
@@ -106,15 +108,16 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     }
     double first_pt_time = wp_times[0];
     std::cout<<"start stap warp loop"<<std::endl;
-    std::cout<<"old poses:\n";
-    for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
+    // std::cout<<"old poses:\n";
+    // for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     bool first_pass = false;
     for (int iter=0;iter<warp_iterations;iter++) {
         std::vector<Eigen::VectorXd> new_poses;
         std::vector<double> new_wpt_times;
 
-        new_poses.push_back(poses.front());
-        new_wpt_times.push_back(wp_times.front());
+        // new_poses.push_back(poses.front());
+        // new_wpt_times.push_back(wp_times.front());
+        double last_wpt_time = 0.0;
         for (int p=1;p<poses.size();p++) {
             Eigen::VectorXd diff = poses[p]-poses[p-1];
             int num_steps = 1;
@@ -128,71 +131,142 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
             // std::cout<<"nominal time:"<<nominal_time<<std::endl;
             Eigen::VectorXd dq = diff/nominal_time;
             double diff_pct = 1.0/(double)num_steps;
-            for (int s=1;s<=num_steps;s++) {
-                if ((p==poses.size()-1)&&(s==num_steps)) continue;
-                if ((p==1)&&(s==0)) continue;
+            for (int s=0;s<num_steps;s++) {
+                // if ((p==1)&&(s==0)) continue;
                 double pct = (double)s/(double)num_steps;
                 // double nom_time = wp_times[p-1] + pct*nominal_time;
                 // std::cout<<"nom time:"<<nom_time<<", human_time_since_start:"<<human_time_since_start<<",htime:"<<h_time<<std::endl;
-                Eigen::VectorXd cur_pose = poses[p-1] + pct*diff;
+                Eigen::VectorXd cur_q = poses[p-1] + pct*diff;
                 // double min_time_diff = diff
-                double nom_time = new_wpt_times.back() + diff_pct*nominal_time;
+                double nom_time = last_wpt_time + diff_pct*nominal_time;
                 double h_time = nom_time+human_time_since_start;
-                Eigen::VectorXd nxt_pose = cur_pose;
-                if (s<num_steps) {
-                  nxt_pose = poses[p-1] + (double)(s+1)/(double)num_steps*diff;
-                } else {
-                  nxt_pose = poses[p];
-                }
+                // Eigen::VectorXd nxt_pose = cur_q;
+                // if (s<num_steps) {
+                // nxt_pose = poses[p-1] + (double)(s+1)/(double)num_steps*diff;
+                // } else {
+                //   nxt_pose = poses[p];
+                // }
                 // Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_pose);
                 ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
-                std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_pose,dq);
+                // std::cout<<"q:"<<cur_q.transpose()<<std::endl;
+                // std::cout<<"dq:"<<dq.transpose()<<std::endl;
+                std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_q,dq);
                 Eigen::VectorXd tau(diff.size());
                 tau.setZero();
                 for (int j=2;j<scale_vects.size();j++) {
-                  Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_pose,link_names[j]);
-                  Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.01)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
-                  // std::cout<<"tau:"<<tmp_tau.transpose()<<std::endl;
+                  Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
+                  Eigen::VectorXd tmp_tau = repulsion*(1.0-scale_vects[j].first)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                  // Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.1)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                  // if (scale_vects[j].first<1.0) {
+                  //   std::cout<<"j:"<<j<<",vec:"<<scale_vects[j].second<<", scale:"<<scale_vects[j].first<<", tau:"<<tmp_tau.transpose()<<std::endl;
+                  // }
                   tau += tmp_tau;
                 }
                 // std::cout<<"tau sum:"<<tau.transpose()<<std::endl;
-                new_poses.push_back(cur_pose-1.0*tau);
+                new_poses.push_back(cur_q-1.0*tau);
                 new_wpt_times.push_back(nom_time);
+                last_wpt_time = nom_time;
             }
         }
         first_pass = true;
         new_poses.push_back(poses.back());
         new_wpt_times.push_back(wp_times.back());
-        poses = new_poses;
+        poses = new_poses;    
+        visualization_msgs::Marker mkr2;
+        mkr2.header.frame_id = "world";
+        mkr2.id = 10001;
+        mkr2.type = 7;
+        mkr2.pose.position.x = 0;
+        mkr2.pose.position.y = 0;
+        mkr2.pose.position.z = 0;
+        mkr2.pose.orientation.w = 1;
+        mkr2.pose.orientation.x = 0;
+        mkr2.pose.orientation.y = 0;
+        mkr2.pose.orientation.z = 0;
+        mkr2.color.a = 1.0;
+        mkr2.color.b = 1.0;
+        mkr2.color.r = 1.0;
+        mkr2.scale.x = 0.02;
+        mkr2.scale.y = 0.02;
+        mkr2.scale.z = 0.02;
+        mkr2.lifetime = ros::Duration();
+        // std::cout<<"new poses:\n";
+        for (int i=0;i<poses.size();i++) {
+          // std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
+          state->setJointGroupPositions("edo",poses[i]);
+          geometry_msgs::Pose pose;
+          tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+          mkr2.points.push_back(pose.position);
+          
+        }
+        warp_pub2.publish(mkr2);
+        // std::cin.ignore();
         wp_times = new_wpt_times;
         // for (int i=1;i<poses.size()-1;i++) {
         //   poses[i] = 0.5*(poses[i-1]+poses[i]);//+poses[i+1]);
         // }
     }
 
-    std::cout<<"new poses:\n";
-    for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
-    
+
+    visualization_msgs::Marker mkr2;
+    mkr2.header.frame_id = "world";
+    mkr2.id = 10001;
+    mkr2.type = 7;
+    mkr2.pose.position.x = 0;
+    mkr2.pose.position.y = 0;
+    mkr2.pose.position.z = 0;
+    mkr2.pose.orientation.w = 1;
+    mkr2.pose.orientation.x = 0;
+    mkr2.pose.orientation.y = 0;
+    mkr2.pose.orientation.z = 0;
+    mkr2.color.a = 1.0;
+    mkr2.color.b = 1.0;
+    mkr2.color.g = 1.0;
+    mkr2.scale.x = 0.04;
+    mkr2.scale.y = 0.04;
+    mkr2.scale.z = 0.04;
+    mkr2.lifetime = ros::Duration();
+
     trajectory_msgs::JointTrajectory new_plan;
     new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
     Eigen::VectorXd diff = Eigen::VectorXd::Zero(6);
     trajectory_msgs::JointTrajectoryPoint pt;
-    for (int j=0;j<6;j++) pt.positions.push_back(cur_pose[j]);
-    for (int j=0;j<6;j++) pt.velocities.push_back(0.0);
+    // for (int j=0;j<6;j++) pt.positions.push_back(cur_pose[j]);
+    // for (int j=0;j<6;j++) pt.velocities.push_back(0.0);
+    std::cout<<cur_js<<std::endl;
     for (int j=0;j<6;j++) pt.accelerations.push_back(0.0);
     for (int j=0;j<6;j++) pt.effort.push_back(0.0);
+    for (int j=0;j<6;j++) pt.positions.push_back(cur_js.position[j]);
+    for (int j=0;j<6;j++) pt.velocities.push_back(cur_js.velocity[j]);
+    // pt.accelerations = cur_js.acceleration;
     new_plan.points.push_back(pt);
+    state->setJointGroupPositions("edo",pt.positions);
+    geometry_msgs::Pose pose;
+    tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+    mkr2.points.push_back(pose.position);
+    diff = (poses[1]-poses[0]).normalized();
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if (((abs(new_diff.dot(diff))<0.9)&&((poses[i]-cur_pose).norm()>0.5))||(i==poses.size()-1)) {
-        for (int j=0;j<6;j++) pt.positions[j] = poses[i][j];
+      if (((abs(new_diff.dot(diff))<0.5)&&((poses[i]-cur_pose).norm()>0.2))) {
+        for (int j=0;j<6;j++) pt.positions[j] = poses[i-1][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
         for (int j=0;j<6;j++) pt.effort[j] = 0.0;
         new_plan.points.push_back(pt);
+        state->setJointGroupPositions("edo",pt.positions);
+        tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+        mkr2.points.push_back(pose.position);
         diff = new_diff;
       }
     }
+    for (int j=0;j<6;j++) pt.positions[j] = poses.back()[j];
+    for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
+    for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
+    for (int j=0;j<6;j++) pt.effort[j] = 0.0;
+    new_plan.points.push_back(pt);
+
+    warp_pub3.publish(mkr2);
+    if (new_plan.points.size()==2) return;
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     robot_state::RobotStatePtr state = move_group.getCurrentState();
     // moveit::core::robotStateToRobotStateMsg(*state,new_plan.start_state_);
@@ -208,10 +282,11 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     // new_plan.points.erase(new_plan.points.begin());
 
     std::cout<<"new plan:\n";
-    for (int i=0;i<new_plan.points.size();i++) {
-      for (int j=0;j<6;j++) std::cout<<new_plan.points[i].positions[j]<<",";
-      std::cout<<std::endl;
-    }
+    std::cout<<new_plan<<std::endl;
+    // for (int i=0;i<new_plan.points.size();i++) {
+    //   for (int j=0;j<6;j++) std::cout<<new_plan.points[i].positions[j]<<",";
+    //   std::cout<<std::endl;
+    // }
 
 
     new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
@@ -236,17 +311,21 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     mkr.lifetime = ros::Duration();
 
     warp_pub.publish(mkr);
-    for (int i=0;i<new_plan.points.size();i++) {
-      state->setJointGroupPositions("edo",new_plan.points[i].positions);
-      geometry_msgs::Pose pose;
-      tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
-      // Eigen::Affine3d T_base_tool = chain_->getTransformation(poses[i]);
-      // Eigen::Vector3d ee = T_base_tool.translation();
-      // geometry_msgs::Point pt;
-      // pt.x = ee[0];
-      // pt.y = ee[1];
-      // pt.z = ee[2];
-      mkr.points.push_back(pose.position);
+    Eigen::VectorXd q1(6);
+    Eigen::VectorXd q2(6);
+    for (int i=1;i<new_plan.points.size();i++) {
+      for (int q=0;q<6;q++) q1[q] = new_plan.points[i-1].positions[q];
+      for (int q=0;q<6;q++) q2[q] = new_plan.points[i].positions[q];
+      Eigen::VectorXd diff = q2-q1;
+      int n = std::ceil(diff.norm()/0.1);
+      for (int j=0;j<n;j++) {
+        double pct = (double)j/(double)n;
+        Eigen::VectorXd q3 = q1+pct*diff;
+        state->setJointGroupPositions("edo",q3);
+        geometry_msgs::Pose pose;
+        tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+        mkr.points.push_back(pose.position);
+      }
     }
     warp_pub.publish(mkr);
 }

@@ -148,6 +148,12 @@ class data_recorder {
   }
   std::vector<double> joint_positions;
   Eigen::VectorXd joint_vel_vec;
+  sensor_msgs::JointState get_current_joint_state() {
+    std::lock_guard<std::mutex> lock(js_mtx);
+    // std::cout<<"cur_js\n";
+    // std::cout<<cur_js<<std::endl;
+    return cur_js;
+  }
   protected:
   ros::NodeHandle nh_;
   int n_dof_=0;
@@ -169,6 +175,8 @@ class data_recorder {
   std::vector<double> human_link_len_;
   planning_scene::PlanningScenePtr ps_ptr;
   private:
+  sensor_msgs::JointState cur_js;
+  std::mutex js_mtx;
   bool ready_ = false;
   std::vector<Eigen::Quaternionf> live_human_quats;
   std::vector<Eigen::Vector3f> live_human_points;

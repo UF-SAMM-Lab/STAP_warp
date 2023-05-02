@@ -19,7 +19,7 @@ namespace stap {
 class stap_warper {
     public:
         stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state, robot_model::RobotModelPtr model);
-        void warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose);
+        void warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js);
         void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
         void scale_time_callback(const std_msgs::Float64::ConstPtr& msg);
@@ -34,6 +34,8 @@ class stap_warper {
         ros::Subscriber sub_act_trj;
         double path_time_pct = 0.0;
         ros::Publisher warp_pub;
+        ros::Publisher warp_pub2;
+        ros::Publisher warp_pub3;
         ros::Publisher blend_pub;
         int warp_iterations = 1;
         double attraction = 0.0001;

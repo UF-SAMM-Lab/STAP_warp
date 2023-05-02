@@ -244,6 +244,8 @@ void data_recorder::jnt_state_callback(const sensor_msgs::JointState::ConstPtr& 
     for (int i=0;i<n_dof_;i++) jsLogFile << joint_velocities[i]<<",";
     for (int i=0;i<n_dof_;i++) jsLogFile << joint_accelerations[i]<<",";
     jsLogFile <<"\n";
+    std::lock_guard<std::mutex> lock(js_mtx);
+    cur_js = *msg;
 }
 void data_recorder::pose_callback(const geometry_msgs::PoseArray::ConstPtr& msg) {
     ready_ = true;
