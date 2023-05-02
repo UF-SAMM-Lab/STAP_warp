@@ -360,7 +360,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     diff = (poses[1]-poses[0]).normalized();
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if (((abs(new_diff.dot(diff))<connection_tol)&&((poses[i]-cur_pose).norm()>0.5))) {
+      if (((abs(new_diff.dot(diff))<connection_tol)&&((poses[i]-cur_pose).norm()>0.8))) {
         for (int j=0;j<6;j++) pt.positions[j] = poses[i-1][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
