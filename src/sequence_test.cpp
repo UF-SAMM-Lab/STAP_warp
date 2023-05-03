@@ -106,16 +106,31 @@ int main(int argc, char** argv) {
       ros::Duration(0.1).sleep();
     }
     std::shared_ptr<ros::Publisher> human_pub = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::MarkerArray>("predicted_human", 0,false));
+    // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
     stap_test::humans human_data(nh,human_quat_pose,predictor,human_pub);
     skel_mtx.unlock();
-    stap_test::robot_sequence robot_data(nh);
+    stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group);
     human_data.predicted_motion();
     human_data.show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
-    // while (ros::ok()) {
-
-    // }
+    //pre-plan all robot motions
+    int h = 0;
+    double last_human_time = 0.0;
+    double segment_time = 0.0;
+    double human_done_time = 0.0;
+    std::vector<double> last_waypoint = move_group.getCurrentJointValues();
+    for (int i=0;i<robot_data.num_segments();i++) {
+      while ((human_data.human_prior_robot_task(h)<i)&&(h<human_data.get_num_steps())) {
+        h++;
+        segment_time = 0.0;
+      }
+      last_human_time = human_data.pub_model(h,i,-segment_time);
+      ros::Duration(0.1).sleep();
+      double planned_time = robot_data.plan_robot_segment(i,last_waypoint);
+      segment_time += planned_time;
+      ROS_INFO_STREAM("planned robot segment "<<i<<" with est. time of "<<planned_time);
+    }
 
 }

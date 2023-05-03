@@ -14,6 +14,42 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
     for (int i=0; i<num_steps;i++) {
         data.emplace_back(nh,i,predictor,seq_pub);
     }
+    human_model_pub = nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false);
+}
+
+float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq) {
+    if ((start_seq<0)||(start_seq>=data.size())) return 0.0;
+    stap_warp::joint_seq seq_msg;
+    float elapsed_tm = std::round(10.0*start_tm_in_robot_seq)*0.1;
+    int s = 0;
+    float dt = 0.1;
+    for (s=start_seq;s<data.size();s++) {
+        if (data[s].get_prior_robot_task()>robot_step) return elapsed_tm-start_tm_in_robot_seq;
+        if (data[s].get_start_delay()>0.0)  {
+            float start_tm = elapsed_tm;
+            while (elapsed_tm - start_tm<data[s].get_start_delay()) {
+                if (elapsed_tm>0) {
+                    stap_warp::joint_seq_elem seq_elem;
+                    seq_elem.time = elapsed_tm;
+                    seq_elem.quats = data[s].get_seq(0).second;
+                    seq_msg.sequence.push_back(seq_elem);
+                }
+                elapsed_tm += dt;
+            }
+        }
+        for (int i=0;i<data[s].get_seq_size();i++) {
+            float seq_time = data[s].get_seq(i).first+elapsed_tm;
+            if (seq_time>=0.0) {
+                stap_warp::joint_seq_elem seq_elem;
+                seq_elem.time = seq_time;
+                seq_elem.quats = data[s].get_seq(i).second;
+                seq_msg.sequence.push_back(seq_elem);
+            }
+        }
+        elapsed_tm += data[s].get_seq(data[s].get_seq_size()).first+dt;
+    }
+    human_model_pub.publish(seq_msg);
+    return elapsed_tm-start_tm_in_robot_seq;
 }
 
 void humans::predicted_motion(void) {
@@ -174,7 +210,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
             mkr.color.r=c[0];
             mkr.color.b=c[1];
             mkr.color.g=c[2];
-            mkr.color.a=0.2;
+            mkr.color.a=1.0;
             mkr.pose.position.x = link_centroids[b][0];
             mkr.pose.position.y = link_centroids[b][1];
             mkr.pose.position.z = link_centroids[b][2];
@@ -193,7 +229,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     }
 }
 
-robot_sequence::robot_sequence(ros::NodeHandle nh):nh(nh) {
+robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group):nh(nh),state(state),model(model),move_group(plan_group) {
     if (!nh.getParam("/test_sequence/robot_sequence/length", num_steps))
     {
       ROS_ERROR("/test_sequence/robot_sequence/length is not defined in sequence.yaml");
@@ -214,7 +250,43 @@ robot_sequence::robot_sequence(ros::NodeHandle nh):nh(nh) {
         for (int q=0;q<6;q++) std::cout<<goals_angles.back()[q]<<",";
         std::cout<<std::endl;
     }
+    move_group.setPlanningPipelineId("irrt_avoid");
+    move_group.setPlannerId("irrta");
+    double planning_time = 5.0;
+    nh.getParam("/planning_time", planning_time);
+    move_group.setPlanningTime(planning_time);
+    planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
+    last_perf_received = ros::Time::now();
+}
 
+void robot_sequence::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
+    if (msg->data.empty()) return;
+    plan_time = msg->data.back();
+    last_perf_received = ros::Time::now();
+}
+
+double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& start_joint) {
+    if ((seg_num<0)||(seg_num>data.size())) return 0.0;
+    state = move_group.getCurrentState();
+    state->setVariablePositions(start_joint);
+    move_group.setStartState(*state);
+    move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    ros::Time plan_req_time = ros::Time::now();
+    bool plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
+    while ((last_perf_received-plan_req_time).toSec()<0.0) {
+        ros::Duration(0.1).sleep();
+        ROS_INFO("waiting for planner time estimate");
+    }
+    if (plan_success) {
+        data[seg_num].plan = plan;
+        data[seg_num].planned_time = plan_time;
+        start_joint = plan.trajectory_.joint_trajectory.points.back().positions;
+        return plan_time;
+    } else {
+        ROS_ERROR("planning failed");
+        return 0.0;
+    }
 }
 robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
     id = idx;
@@ -228,4 +300,6 @@ robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
     nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
     std::cout<<" prior_human_task:"<<prior_human_task<<std::endl;
 }
+
+
 }

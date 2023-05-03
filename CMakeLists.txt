@@ -34,6 +34,12 @@ add_service_files(
   human_prediction.srv
 )
 
+add_message_files(
+  FILES
+  joint_seq_elem.msg
+  joint_seq.msg
+)
+
 message(STATUS "generating messages")
 generate_messages(
   DEPENDENCIES

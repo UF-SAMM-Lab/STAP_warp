@@ -610,7 +610,7 @@ int main(int argc, char** argv) {
             // if ((i==1) && ((test_num-3)%5!=0)) {
             //   co_human.start_obs(stap_offset);
             // }
-            if (i==1) {
+            if ((i==1)&&(planner_id=="irrta")) {
               ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
               move_group.asyncExecute(plans[i]);
               ros::Duration(0.1).sleep();
