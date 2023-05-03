@@ -17,6 +17,7 @@
     <param  name="ctrl_ns" value="edo"/>
     <param  name="stap_warp/base_frame" value="edo_base_link"/>
     <param  name="stap_warp/tool_frame" value="edo_link_ee_tip"/>
+    <param  name="sequence_test/planning_time" value="5.0"/>
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg     if="$(arg debug)" name="launch_prefix"
            value="gdb --ex run --args" /> 

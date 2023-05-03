@@ -18,7 +18,7 @@ class human {
         std::vector<float> get_last_pose(void) {return end_pose;}
         float get_start_delay(void) {return start_delay;}
         int get_prior_robot_task(void) {return prior_robot_task;}
-        std::pair<float,std::vector<float>> get_seq(int i) {return sequence[i];}
+        std::tuple<float,std::vector<float>,std::vector<float>> get_seq(int i) {return sequence[i];}
         int get_seq_size(void) {return sequence.size();}
     private:
         int id = 0;
@@ -29,11 +29,11 @@ class human {
         float end_delay = 0.0;
         bool arm_right = true;
         bool arm_left = false;
-        std::vector<std::pair<float,std::vector<float>>> sequence;
+        std::vector<std::tuple<float,std::vector<float>,std::vector<float>>> sequence;
         std::vector<float> end_pose;
         std::shared_ptr<ros::ServiceClient> predictor;
         std::shared_ptr<ros::Publisher> seq_pub;
-        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats);
+        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, std::vector<Eigen::Vector3f>& human_points);
         std::vector<float> link_lengths_;
         std::vector<float> radii;
 };

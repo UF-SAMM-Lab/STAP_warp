@@ -31,22 +31,23 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                 if (elapsed_tm>0) {
                     stap_warp::joint_seq_elem seq_elem;
                     seq_elem.time = elapsed_tm;
-                    seq_elem.quats = data[s].get_seq(0).second;
+                    seq_elem.joint_pos = std::get<1>(data[s].get_seq(0));
+                    seq_elem.quats = std::get<2>(data[s].get_seq(0));
                     seq_msg.sequence.push_back(seq_elem);
                 }
                 elapsed_tm += dt;
             }
         }
         for (int i=0;i<data[s].get_seq_size();i++) {
-            float seq_time = data[s].get_seq(i).first+elapsed_tm;
+            float seq_time = std::get<0>(data[s].get_seq(i))+elapsed_tm;
             if (seq_time>=0.0) {
                 stap_warp::joint_seq_elem seq_elem;
                 seq_elem.time = seq_time;
-                seq_elem.quats = data[s].get_seq(i).second;
+                seq_elem.quats = std::get<2>(data[s].get_seq(i));
                 seq_msg.sequence.push_back(seq_elem);
             }
         }
-        elapsed_tm += data[s].get_seq(data[s].get_seq_size()).first+dt;
+        elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()))+dt;
     }
     human_model_pub.publish(seq_msg);
     return elapsed_tm-start_tm_in_robot_seq;
@@ -95,21 +96,29 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
         int n_cols = srv.response.pose_sequence.layout.dim[0].size;
         int i = 0;
         while (true) {
-            std::pair<float,std::vector<float>> seq_step;
-            seq_step.first = srv.response.pose_sequence.data[i];
+            std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
+            std::vector<float> quat_vec;
+            std::vector<float> joint_vec;
             for (int j=1;j<n_cols;j++) {
-                seq_step.second.push_back(srv.response.pose_sequence.data[i+j]);
+                quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
             }
-            sequence.push_back(seq_step);
+            std::vector<Eigen::Vector3f> tmp_joint_vec;
+            std::vector<Eigen::Vector3f> link_centroids;
+            std::vector<Eigen::Quaternionf> link_quats;
+            forward_kinematics(quat_vec,link_centroids,link_quats,tmp_joint_vec);
+            for (int j=1;j<tmp_joint_vec.size();j++) {
+                for (int k=0;k<3;k++) joint_vec.push_back(tmp_joint_vec[j][k])
+            }
+            sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec);
             i+=n_cols;
             if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
         }
-        end_pose = sequence.back().second;
+        end_pose = std::get<2>(sequence.back());
     }
 }
     
-void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats) {
+void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, std::vector<Eigen::Vector3f>& human_points) {
 
     Eigen::Vector3f pelvis_loc = {pose_elements[0],pose_elements[1],pose_elements[2]};
     // pelvis_loc = transform_to_world*pelvis_loc;
@@ -126,7 +135,6 @@ void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eig
     }
     link_centroids.clear();
     link_quats.clear();
-    std::vector<Eigen::Vector3f> human_points;
     Eigen::Quaternionf z_spine = quats[0]*z_axis_quat*quats[0].inverse();
     Eigen::Quaternionf x_spine = quats[0]*x_axis_quat*quats[0].inverse();
     // link_quats.push_back(z_spine);
@@ -180,8 +188,13 @@ void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eig
     link_quats.push_back(quats[4]);
     link_quats.push_back(quats[5]);
     link_quats.push_back(quats[6]);
-
-    
+    Eigen::Vector3f spine_mid = 0.5*(spine_top+pelvis_loc);
+    human_points.push_back(spine_mid);
+    human_points.push_back(0.5*(spine_top+head));
+    human_points.push_back(0.5*(l_shoulder+e1));
+    human_points.push_back(0.5*(w1+e1));
+    human_points.push_back(0.5*(r_shoulder+e2));
+    human_points.push_back(0.5*(w2+e2));
 }
 
 void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
@@ -197,7 +210,8 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     for (int i=0;i<sequence.size();i++) {
         std::vector<Eigen::Vector3f> link_centroids;
         std::vector<Eigen::Quaternionf> link_quats;
-        forward_kinematics(sequence[i].second,link_centroids,link_quats);
+        std::vector<Eigen::Vector3f> joint_vec;
+        forward_kinematics(std::get<2>(sequence[i]),link_centroids,link_quats,joint_vec);
         std::vector<int> ids = {0,1,3,4,5,6};
         visualization_msgs::MarkerArray mkr_arr;
         for (int b=0;b<6;b++) {
@@ -253,7 +267,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     move_group.setPlanningPipelineId("irrt_avoid");
     move_group.setPlannerId("irrta");
     double planning_time = 5.0;
-    nh.getParam("/planning_time", planning_time);
+    nh.getParam("/sequence_test/planning_time", planning_time);
     move_group.setPlanningTime(planning_time);
     planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
     last_perf_received = ros::Time::now();
