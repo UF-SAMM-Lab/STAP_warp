@@ -21,12 +21,24 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
   velocity_scaling_iso15066
+  message_generation
 )
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+
+add_service_files(
+  FILES
+  human_prediction.srv
+)
+
+message(STATUS "generating messages")
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package(
   INCLUDE_DIRS include
@@ -72,6 +84,15 @@ target_link_libraries(test_sim
 add_dependencies(test_sim ${catkin_EXPORTED_TARGETS})
 install(TARGETS test_sim DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(test_live src/test_live.cpp)
+target_link_libraries(test_live
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  torch
+)
+add_dependencies(test_live ${catkin_EXPORTED_TARGETS})
+install(TARGETS test_live DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 add_executable(blend_test src/blend_test.cpp)
 target_link_libraries(blend_test
   ${catkin_LIBRARIES}
@@ -80,6 +101,15 @@ target_link_libraries(blend_test
 )
 add_dependencies(blend_test ${catkin_EXPORTED_TARGETS})
 install(TARGETS blend_test DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(sequence_test src/sequence_test.cpp)
+target_link_libraries(sequence_test
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+  torch
+)
+add_dependencies(sequence_test ${catkin_EXPORTED_TARGETS})
+install(TARGETS sequence_test DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Install ##

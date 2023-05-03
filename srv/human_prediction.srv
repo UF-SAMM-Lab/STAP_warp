@@ -1,0 +1,5 @@
+float64[] start_poses
+float64[] reach_target
+bool active_hand
+---
+std_msgs/Float64MultiArray pose_sequence
