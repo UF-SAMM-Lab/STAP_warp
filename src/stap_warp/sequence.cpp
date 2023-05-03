@@ -107,7 +107,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             std::vector<Eigen::Quaternionf> link_quats;
             forward_kinematics(quat_vec,link_centroids,link_quats,tmp_joint_vec);
             for (int j=1;j<tmp_joint_vec.size();j++) {
-                for (int k=0;k<3;k++) joint_vec.push_back(tmp_joint_vec[j][k])
+                for (int k=0;k<3;k++) joint_vec.push_back(tmp_joint_vec[j][k]);
             }
             sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec);
             i+=n_cols;
@@ -133,6 +133,7 @@ void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eig
         quats.push_back(q);
         // ROS_INFO_STREAM("quat "<<q.w()<<" "<<q.vec().transpose());
     }
+    human_points.clear();
     link_centroids.clear();
     link_quats.clear();
     Eigen::Quaternionf z_spine = quats[0]*z_axis_quat*quats[0].inverse();
