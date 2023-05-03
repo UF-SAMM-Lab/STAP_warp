@@ -4,7 +4,7 @@ void clearObstacles(void) {
     moveit::planning_interface::PlanningSceneInterface current_scene;
     std::vector<std::string> obstacles;
     obstacles = current_scene.getKnownObjectNames();
-    std::cout<<"num obstacles = "<<obstacles.size()<<std::endl;
+    // std::cout<<"num obstacles = "<<obstacles.size()<<std::endl;
     for (int i=0;i<obstacles.size();i++) {
         if (obstacles[i]=="table") {
             obstacles.erase(obstacles.begin()+i);
@@ -14,12 +14,12 @@ void clearObstacles(void) {
         current_scene.removeCollisionObjects(obstacles);
         obstacles = current_scene.getKnownObjectNames();
         for (int i=0;i<obstacles.size();i++) {
-            std::cout<<obstacles[i]<<std::endl;
+            // std::cout<<obstacles[i]<<std::endl;
             if (obstacles[i]=="table") {
                 obstacles.erase(obstacles.begin()+i);
             }
         }
-        std::cout<<"num obstacles = "<<obstacles.size()<<std::endl;
+        // std::cout<<"num obstacles = "<<obstacles.size()<<std::endl;
     }
 }
 human_publisher::human_publisher(ros::NodeHandle nh, bool sim):nh_(nh) {
@@ -402,6 +402,7 @@ double data_recorder::get_min_dist(void) {
 data_recorder::~data_recorder() {
     logFile.close();
     solvperflogFile.close();
+    jsLogFile.close();
 }
 
 human_occupancy_helper::human_occupancy_helper(ros::NodeHandle nh):nh_(nh) {

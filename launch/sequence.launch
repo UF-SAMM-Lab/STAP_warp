@@ -26,6 +26,7 @@
     <rosparam file="$(find uf_edo_safety)/config/safety.yaml" command="load"/>
     <include file="$(find uf_edo_safety)/launch/safety.launch"/>
     <include file="$(find robot_human_distance_checker)/launch/dist_check.launch"/>
+    <include file="$(find human_prediction)/launch/predict_service.launch"/>
     <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
     <node name="sequence_test" pkg="stap_warp" type="sequence_test" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
         <param name="avoid_time_offset" value="$(arg avoid_time_offset)"/>

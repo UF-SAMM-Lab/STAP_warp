@@ -219,11 +219,13 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 std::vector<Eigen::Affine3d,Eigen::aligned_allocator<Eigen::Affine3d>> T_base_all_links = chain_->getTransformations(cur_q);
                 tau.setZero();
                 bool need_attr = false;
+                double min_scale = 1.0;
                 for (int jj=0;jj<scale_vect_ids.size();jj++) {
                   int j = scale_vect_ids[jj];
                   Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
                   if (scale_vects[j].first<1.0) {
                     need_attr = true;
+                    min_scale = std::min(min_scale,scale_vects[j].first);
                     // Eigen::Vector3d force_vec = scale_vects[j].second.cross(Eigen::Vector3d::UnitZ()).normalized();
                     // force_vec = (0.5*(force_vec+scale_vects[j].second)).normalized();
                     Eigen::Vector3d force_vec = scale_vects[j].second;
@@ -243,7 +245,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                     // std::cout<<"j:"<<j<<",vec:"<<scale_vects[j].second.transpose()<<",f vec:"<<force_vec.transpose()<<", scale:"<<scale_vects[j].first<<", tau:"<<tmp_tau.transpose()<<std::endl;
                   }
                 }
-
+                nom_time = last_wpt_time + (1.0/std::max(min_scale,0.01))*diff_pct*nominal_time;
                 if (prev_repl_steps>0) {
                   tau+=((double)prev_repl_steps/((double)smooth_steps+1.0))*last_repulsion_tau;
                   prev_repl_steps--;

@@ -64,6 +64,7 @@ include_directories(
 )
 
 add_library(${PROJECT_NAME}
+  src/${PROJECT_NAME}/sequence.cpp
   src/${PROJECT_NAME}/stap_warp.cpp
   src/${PROJECT_NAME}/utilities.cpp
 )
