@@ -8,6 +8,7 @@
 #include <std_msgs/Float64MultiArray.h>
 #include <stap_warp/joint_seq.h>
 #include <stap_warp/joint_seq_elem.h>
+#include <stap_warp/utilities.h>
 
 namespace stap_test {
 class human {
@@ -18,7 +19,7 @@ class human {
         std::vector<float> get_last_pose(void) {return end_pose;}
         float get_start_delay(void) {return start_delay;}
         int get_prior_robot_task(void) {return prior_robot_task;}
-        std::tuple<float,std::vector<float>,std::vector<float>> get_seq(int i) {return sequence[i];}
+        std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> get_seq(int i) {return sequence[i];}
         int get_seq_size(void) {return sequence.size();}
     private:
         int id = 0;
@@ -29,11 +30,11 @@ class human {
         float end_delay = 0.0;
         bool arm_right = true;
         bool arm_left = false;
-        std::vector<std::tuple<float,std::vector<float>,std::vector<float>>> sequence;
+        std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> sequence;
         std::vector<float> end_pose;
         std::shared_ptr<ros::ServiceClient> predictor;
         std::shared_ptr<ros::Publisher> seq_pub;
-        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, std::vector<Eigen::Vector3f>& human_points);
+        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, Eigen::MatrixXd& human_points);
         std::vector<float> link_lengths_;
         std::vector<float> radii;
 };
@@ -52,6 +53,8 @@ class humans {
             return data[human].get_prior_robot_task();
         }
         int get_num_steps(void) {return data.size();}
+        std::vector<std::pair<float,Eigen::MatrixXd>> full_joint_seq;
+
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;
@@ -76,11 +79,12 @@ class robot_segment {
 };
 class robot_sequence {
     public:
-        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group);
+        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec);
         double plan_robot_segment(int seg_num, std::vector<double>& start_joint);
         int num_segments(void) {
             return data.size();
         }
+        bool do_segment(int seg_num);
     private:
         robot_state::RobotStatePtr state;
         robot_model::RobotModelPtr model;
@@ -93,5 +97,8 @@ class robot_sequence {
         void perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
         double plan_time = 0.0;
         ros::Time last_perf_received;
+        std::shared_ptr<stap_test::humans> human_data;
+        std::shared_ptr<data_recorder> rec;
+        void segment_thread(int seg_num);
 };
 }

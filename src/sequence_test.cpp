@@ -97,6 +97,20 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/human_link_lengths", human_link_lengths)) ROS_ERROR("couldn't read human dimensions");
     if (!nh.getParam("/human_link_radii", human_link_radii)) ROS_ERROR("couldn't read human radii");
     if (!nh.getParam("/minimum_distance", min_dist)) ROS_ERROR("couldn't read minimum_distance");
+    if (!nh.getParam("/minimum_distance", min_dist)) ROS_ERROR("couldn't read minimum_distance");
+    std::vector<double> human_link_lengths2; 
+    std::vector<double> human_link_radii2; 
+    test_skeleton.link_lengths_.resize(human_link_lengths.size());
+    test_skeleton.link_radii_.resize(human_link_lengths.size());
+    for (int i=0;i<human_link_radii.size();i++) {
+      std::cout<<human_link_lengths[i]<<",";
+      test_skeleton.link_lengths_[i] = (float)human_link_lengths[i];
+      test_skeleton.link_radii_[i] = (float)human_link_radii[i];
+      if (i==2) continue;
+      human_link_lengths2.push_back(human_link_lengths[i]);
+      human_link_radii2.push_back(human_link_radii[i]);
+    }
+    std::cout<<std::endl;
 
     std::string resp = "y";
     clearObstacles();
@@ -109,9 +123,38 @@ int main(int argc, char** argv) {
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
-    stap_test::humans human_data(nh,human_quat_pose,predictor,human_pub);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub);
     skel_mtx.unlock();
-    stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group);
+
+    urdf::Model urdf_model;
+    urdf_model.initParam("robot_description");
+    std::string base_frame_ = "world";
+    std::string tool_frame = "open_tip";
+    // double step_ = 0.1;
+    if (!nh.getParam("base_frame", base_frame_))
+    {
+      ROS_ERROR("%s/base_frame not defined", nh.getNamespace().c_str());
+      throw std::invalid_argument("base_frame is not defined");
+    }
+    if (!nh.getParam("tool_frame", tool_frame))
+    {
+      ROS_ERROR("%s/tool_frame not defined", nh.getNamespace().c_str());
+      throw std::invalid_argument("tool_frame is not defined");
+    }
+    // if (!nh.getParam("computation_step", step_))
+    // {
+    //   ROS_ERROR("%s/computation_step not defined, use 0.1", nh_.getNamespace().c_str());
+    //   step_=0.1;
+    // }
+
+    Eigen::Vector3d grav;
+    grav << 0, 0, -9.806;
+
+    rosdyn::ChainPtr chain = rosdyn::createChain(urdf_model, base_frame_, tool_frame, grav);
+    std::string log_file= ros::package::getPath("stap_warp")+"/data/sequence_sim.csv";
+    std::string log_file2= ros::package::getPath("stap_warp")+"/data/sequence_solver_perf_sim.csv";
+    std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,&test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
+    stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,rec);
     human_data.predicted_motion();
     human_data.show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
@@ -132,5 +175,6 @@ int main(int argc, char** argv) {
       segment_time += planned_time;
       ROS_INFO_STREAM("planned robot segment "<<i<<" with est. time of "<<planned_time);
     }
+
 
 }

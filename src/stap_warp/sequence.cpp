@@ -23,6 +23,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     float elapsed_tm = std::round(10.0*start_tm_in_robot_seq)*0.1;
     int s = 0;
     float dt = 0.1;
+    full_joint_seq.clear();
     for (s=start_seq;s<data.size();s++) {
         if (data[s].get_prior_robot_task()>robot_step) return elapsed_tm-start_tm_in_robot_seq;
         if (data[s].get_start_delay()>0.0)  {
@@ -34,6 +35,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                     seq_elem.joint_pos = std::get<1>(data[s].get_seq(0));
                     seq_elem.quats = std::get<2>(data[s].get_seq(0));
                     seq_msg.sequence.push_back(seq_elem);
+                    full_joint_seq.push_back(std::get<3>(data[s].get_seq(0)));
                 }
                 elapsed_tm += dt;
             }
@@ -45,6 +47,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                 seq_elem.time = seq_time;
                 seq_elem.quats = std::get<2>(data[s].get_seq(i));
                 seq_msg.sequence.push_back(seq_elem);
+                full_joint_seq.push_back(std::get<3>(data[s].get_seq(i)));
             }
         }
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()))+dt;
@@ -102,14 +105,14 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             for (int j=1;j<n_cols;j++) {
                 quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
             }
-            std::vector<Eigen::Vector3f> tmp_joint_vec;
+            Eigen::MatrixXd joint_mat;
             std::vector<Eigen::Vector3f> link_centroids;
             std::vector<Eigen::Quaternionf> link_quats;
-            forward_kinematics(quat_vec,link_centroids,link_quats,tmp_joint_vec);
-            for (int j=1;j<tmp_joint_vec.size();j++) {
-                for (int k=0;k<3;k++) joint_vec.push_back(tmp_joint_vec[j][k]);
+            forward_kinematics(quat_vec,link_centroids,link_quats,joint_mat);
+            for (int j=1;j<joint_mat.rows();j++) {
+                for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.row(j)[k]);
             }
-            sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec);
+            sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec,joint_mat);
             i+=n_cols;
             if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
@@ -118,7 +121,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
     }
 }
     
-void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, std::vector<Eigen::Vector3f>& human_points) {
+void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, Eigen::MatrixXd& human_points) {
 
     Eigen::Vector3f pelvis_loc = {pose_elements[0],pose_elements[1],pose_elements[2]};
     // pelvis_loc = transform_to_world*pelvis_loc;
@@ -133,54 +136,54 @@ void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eig
         quats.push_back(q);
         // ROS_INFO_STREAM("quat "<<q.w()<<" "<<q.vec().transpose());
     }
-    human_points.clear();
+    human_points.resize(3,15);
     link_centroids.clear();
     link_quats.clear();
     Eigen::Quaternionf z_spine = quats[0]*z_axis_quat*quats[0].inverse();
     Eigen::Quaternionf x_spine = quats[0]*x_axis_quat*quats[0].inverse();
     // link_quats.push_back(z_spine);
     Eigen::Vector3f spine_top = pelvis_loc+link_lengths_[0]*z_spine.vec();
-    human_points.push_back(pelvis_loc);
-    human_points.push_back(spine_top);
+    human_points.col(0) = pelvis_loc;
+    human_points.col(1) = spine_top;
     link_centroids.push_back(pelvis_loc+0.5*link_lengths_[0]*z_spine.vec());
     // ROS_INFO_STREAM("spine top "<<spine_top.transpose());
     Eigen::Quaternionf z_neck = quats[1]*z_axis_quat*quats[1].inverse();
     Eigen::Quaternionf x_neck = quats[1]*x_axis_quat*quats[1].inverse();
     // link_quats.push_back(z_neck);
     Eigen::Vector3f head = spine_top+link_lengths_[1]*z_neck.vec();
-    human_points.push_back(head);
+    human_points.col(2) = head;
     link_centroids.push_back(spine_top+0.5*link_lengths_[1]*z_neck.vec());
     // ROS_INFO_STREAM("head top "<<head.transpose());
     Eigen::Quaternionf z_shoulders = quats[2]*z_axis_quat*quats[2].inverse();
     Eigen::Vector3f l_shoulder = spine_top-0.5*link_lengths_[2]*z_shoulders.vec();
-    human_points.push_back(l_shoulder);
+    human_points.col(3) = l_shoulder;
     // ROS_INFO_STREAM("l_shoulder "<<l_shoulder.transpose());
     Eigen::Quaternionf z_e1 = quats[3]*z_axis_quat*quats[3].inverse();
     Eigen::Quaternionf x_e1 = quats[3]*x_axis_quat*quats[3].inverse();
     // link_quats.push_back(x_e1);
     Eigen::Vector3f e1 = l_shoulder+link_lengths_[3]*z_e1.vec();
-    human_points.push_back(e1);
+    human_points.col(4) = e1;
     link_centroids.push_back(l_shoulder+0.5*link_lengths_[3]*z_e1.vec());
     Eigen::Quaternionf z_w1 = quats[4]*z_axis_quat*quats[4].inverse();
     Eigen::Quaternionf x_w1 = quats[4]*x_axis_quat*quats[4].inverse();
     // link_quats.push_back(x_w1);
     Eigen::Vector3f w1 = e1+(link_lengths_[4]+0.1)*z_w1.vec();
-    human_points.push_back(w1);
+    human_points.col(5) = w1;
     link_centroids.push_back(e1+0.5*(link_lengths_[4])*z_w1.vec());
     Eigen::Vector3f r_shoulder = spine_top+0.5*link_lengths_[2]*z_shoulders.vec();
-    human_points.push_back(r_shoulder);
+    human_points.col(6) = r_shoulder;
     // ROS_INFO_STREAM("r_shoulder "<<r_shoulder.transpose());
     Eigen::Quaternionf z_e2 = quats[5]*z_axis_quat*quats[5].inverse();
     Eigen::Quaternionf x_e2 = quats[5]*x_axis_quat*quats[5].inverse();
     // link_quats.push_back(x_e2);
     Eigen::Vector3f e2 = r_shoulder+link_lengths_[5]*z_e2.vec();
-    human_points.push_back(e2);
+    human_points.col(7) = e2;
     link_centroids.push_back(r_shoulder+0.5*link_lengths_[5]*z_e2.vec());
     Eigen::Quaternionf z_w2 = quats[6]*z_axis_quat*quats[6].inverse();
     Eigen::Quaternionf x_w2 = quats[6]*x_axis_quat*quats[6].inverse();
     // link_quats.push_back(x_w2);
     Eigen::Vector3f w2 = e2+(link_lengths_[6]+0.1)*z_w2.vec();
-    human_points.push_back(w2);
+    human_points.col(8) = w2;
     link_centroids.push_back(e2+0.5*(link_lengths_[6])*z_w2.vec());
 
     link_quats.push_back(quats[0]);
@@ -190,12 +193,12 @@ void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eig
     link_quats.push_back(quats[5]);
     link_quats.push_back(quats[6]);
     Eigen::Vector3f spine_mid = 0.5*(spine_top+pelvis_loc);
-    human_points.push_back(spine_mid);
-    human_points.push_back(0.5*(spine_top+head));
-    human_points.push_back(0.5*(l_shoulder+e1));
-    human_points.push_back(0.5*(w1+e1));
-    human_points.push_back(0.5*(r_shoulder+e2));
-    human_points.push_back(0.5*(w2+e2));
+    human_points.col(9) = spine_mid;
+    human_points.col(10) = 0.5*(spine_top+head);
+    human_points.col(11) = 0.5*(l_shoulder+e1);
+    human_points.col(12) = 0.5*(w1+e1);
+    human_points.col(13) = 0.5*(r_shoulder+e2);
+    human_points.col(14) = 0.5*(w2+e2);
 }
 
 void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
@@ -211,7 +214,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     for (int i=0;i<sequence.size();i++) {
         std::vector<Eigen::Vector3f> link_centroids;
         std::vector<Eigen::Quaternionf> link_quats;
-        std::vector<Eigen::Vector3f> joint_vec;
+        Eigen::MatrixXd joint_vec;
         forward_kinematics(std::get<2>(sequence[i]),link_centroids,link_quats,joint_vec);
         std::vector<int> ids = {0,1,3,4,5,6};
         visualization_msgs::MarkerArray mkr_arr;
@@ -244,7 +247,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     }
 }
 
-robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group):nh(nh),state(state),model(model),move_group(plan_group) {
+robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec):nh(nh),state(state),model(model),move_group(plan_group),human_data(human_data),rec(rec) {
     if (!nh.getParam("/test_sequence/robot_sequence/length", num_steps))
     {
       ROS_ERROR("/test_sequence/robot_sequence/length is not defined in sequence.yaml");
@@ -303,6 +306,24 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
         return 0.0;
     }
 }
+
+void robot_sequence::segment_thread(int seg_num) {
+    if ((seg_num<0)||(seg_num>data.size())) return;
+    move_group.asyncExecute(data[seg_num].plan);
+    Eigen::VectorXd goal_vec(6);
+    for (int i=0;i<6;i++) goal_vec[i] = data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions[i]
+    ros::Duration(0.1).sleep();
+    ros::Time p_start = ros::Time::now();
+    while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
+        stap_warp.warp(human_data->full_joint_seq,std::max((ros::Time::now()-p_start).toSec()+stap_offset,0.0),rec.joint_pos_vec,rec.get_current_joint_state());
+        ros::Duration(0.1).sleep();
+    }
+}
+
+bool robot_sequence::do_segment(int seg_num) {
+
+}
+
 robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
     id = idx;
     std::cout<<"robot seg "<<idx<<":";
