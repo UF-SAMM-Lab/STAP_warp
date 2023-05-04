@@ -1,5 +1,6 @@
 float32[] start_pose
 float32[] reach_target
+float32 dt
 bool active_hand
 ---
 std_msgs/Float32MultiArray pose_sequence

@@ -32,6 +32,8 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 add_service_files(
   FILES
   human_prediction.srv
+  human_motion_done.srv
+  human_motion_reset.srv
 )
 
 add_message_files(

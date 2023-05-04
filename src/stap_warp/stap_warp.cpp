@@ -1,6 +1,6 @@
 #include <stap_warp/stap_warp.h>
 namespace stap {
-stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model):nh(nh),state(state),model(model),move_group("edo") {
+stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_):nh(nh),state(state),model(model),move_group("edo") {
     urdf::Model robo_model;
     robo_model.initParam("robot_description");
     std::string base_frame_ = "world";
@@ -89,6 +89,15 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
       ROS_INFO_STREAM("cycle_time:"<<cycle_time);
     }
     scale_vect_ids = {3,4,5,8};
+    planning_scene = planning_scene::PlanningScene::clone(planning_scene_);
+    collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+    std::vector<std::string> co_ids = {"human_torso","human_neck","human_l_upper", "human_l_fore","human_r_upper","human_r_fore"};
+    // std::vector<std::string> robot_ids = {"edo_base_link","edo_link_1","edo_link_2","edo_link_3","edo_link_4","edo_link_5","edo_link_6","edo_link_ee","edo_link_ee_tip"};
+    // for (int r=0;r<robot_ids.size();i++) {
+      for (int i=0;i<co_ids.size();i++) {
+        acm.setEntry(co_ids[i],true);
+      }
+    // }
 }
 
 void stap_warper::act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj) {
@@ -102,15 +111,16 @@ void stap_warper::scale_time_callback(const std_msgs::Float64::ConstPtr& msg) {
 }
 
 void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js) {
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     if ((ros::Time::now()-last_warp_time).toSec()<cycle_time) return;
     if (cur_traj.points.size()<2) return;
     trj_mtx.lock();
     trajectory_msgs::JointTrajectory trj = cur_traj;
     trj_mtx.unlock();
-    std::cout<<"cur pose:"<<cur_pose.transpose()<<std::endl;
+    // std::cout<<"cur pose:"<<cur_pose.transpose()<<std::endl;
     if (path_time_pct>=1.0) return;
     double path_time = path_time_pct*trj.points.back().time_from_start.toSec();
-    std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
+    // std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
     int start_p = 1;
     std::vector<Eigen::VectorXd> poses;
     std::vector<double> wp_times;
@@ -136,13 +146,13 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
       }
       if (in_plan) {
         poses.push_back(tmp_vec);
-        std::cout<<"poses:"<<tmp_vec.transpose()<<std::endl;
+        // std::cout<<"poses:"<<tmp_vec.transpose()<<std::endl;
         wp_times.push_back(trj.points[p].time_from_start.toSec()-start_time);
       }
       prev_pose = tmp_vec;
     }
     double first_pt_time = wp_times[0];
-    std::cout<<"start stap warp loop"<<std::endl;
+    // std::cout<<"start stap warp loop"<<std::endl;
     // std::cout<<"old poses:\n";
     // for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     bool first_pass = false;
@@ -203,7 +213,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 // double min_time_diff = diff
                 double nom_time = last_wpt_time + diff_pct*nominal_time;
                 double h_time = nom_time+human_time_since_start;
-                std::cout<<"nom time:"<<nom_time<<", human_time_since_start:"<<human_time_since_start<<",htime:"<<h_time<<std::endl;
+                // std::cout<<"nom time:"<<nom_time<<", human_time_since_start:"<<human_time_since_start<<",htime:"<<h_time<<std::endl;
                 // Eigen::VectorXd nxt_pose = cur_q;
                 // if (s<num_steps) {
                 // nxt_pose = poses[p-1] + (double)(s+1)/(double)num_steps*diff;
@@ -255,13 +265,13 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                   prev_repl_steps = smooth_steps;
                   Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_q);
                   Eigen::VectorXd t_attr = attraction*jacobian.block(0,0,3,jacobian.cols()).transpose()*(goal_position-T_base_all_links.back().translation()).normalized();
-                  std::cout<<"attr:"<<t_attr.transpose()<<std::endl;
+                  // std::cout<<"attr:"<<t_attr.transpose()<<std::endl;
                   tau-=t_attr;
                   prev_attr_steps = smooth_steps;
                 } else if (prev_attr_steps>0) {
                   Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_q);
                   Eigen::VectorXd t_attr = ((double)prev_attr_steps/(double)smooth_steps)*attraction*jacobian.block(0,0,3,jacobian.cols()).transpose()*(goal_position-T_base_all_links.back().translation()).normalized();
-                  std::cout<<"attr2:"<<prev_attr_steps<<":"<<t_attr.transpose()<<std::endl;
+                  // std::cout<<"attr2:"<<prev_attr_steps<<":"<<t_attr.transpose()<<std::endl;
                   tau-=t_attr;
                   prev_attr_steps -= 1;
                 }
@@ -275,8 +285,24 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                   }
                 }
 
+
                 // std::cout<<"tau sum:"<<tau.transpose()<<std::endl;
-                Eigen::VectorXd new_q = cur_q-1.0*tau;
+                Eigen::VectorXd new_q = cur_q-1.0*tau;                
+                
+                state->setJointGroupPositions("edo", new_q);
+                state->update();
+                if (!state->satisfiesBounds())
+                {
+                  ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
+                  return;
+                }
+
+                if (!planning_scene->isStateValid(*state,"edo"))
+                {
+                  ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
+                  return;
+                }
+
                 new_q= new_q.cwiseMin(q_max).cwiseMax(q_min);
                 new_poses.push_back(new_q);
                 new_wpt_times.push_back(nom_time);
@@ -442,6 +468,10 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
       }
     }
     warp_pub.publish(mkr);
+
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+    ROS_INFO_STREAM("warp took " << time_span.count() << " seconds");
 }
 
 void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile) {

@@ -64,7 +64,7 @@ void human_publisher::show_human_thread(const ros::TimerEvent& event) {
   start_time = ros::Time::now();
 }
 void human_publisher::pub_poses_thread(const ros::TimerEvent& event) {
-  std::cout<<"pub_poses_elapsed_time:"<<pub_poses_elapsed_time<<std::endl;
+  // std::cout<<"pub_poses_elapsed_time:"<<pub_poses_elapsed_time<<std::endl;
   pub_poses_elapsed_time += (event.current_real-pose_start_time).toSec();
   geometry_msgs::PoseArray poses = skel->get_pose_at_time(std::max(pub_poses_elapsed_time,0.0));
   geometry_msgs::Pose p;
@@ -124,7 +124,7 @@ void human_publisher::empty_poses(void) {
   poses_pub.publish(poses);
 }
 
-data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, avoidance_intervals::skeleton *skel_ptr, moveit::core::RobotModelConstPtr robot_model, robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path):nh_(nh),logFile(log_file_full_path,std::ofstream::app),ps_ptr(planning_scene_ptr),human_link_len_(human_link_len),human_link_radii_(human_link_radii), state_(state), chain_(chain),solvperflogFile(solvperflog_file_full_path,std::ofstream::app),jsLogFile("joint_state_record.csv",std::ofstream::trunc) {
+data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, std::shared_ptr<avoidance_intervals::skeleton> skel_ptr, moveit::core::RobotModelConstPtr robot_model, robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path):nh_(nh),logFile(log_file_full_path,std::ofstream::app),ps_ptr(planning_scene_ptr),human_link_len_(human_link_len),human_link_radii_(human_link_radii), state_(state), chain_(chain),solvperflogFile(solvperflog_file_full_path,std::ofstream::app),jsLogFile("joint_state_record.csv",std::ofstream::trunc),skel(skel_ptr) {
   
     ready_ = false;
   spd_sub = nh_.subscribe<std_msgs::Int64>("/safe_ovr_1",1,&data_recorder::spd_callback,this);
@@ -145,7 +145,6 @@ data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, 
 
   human_pose_pts = std::vector<double>(29*2*3,0.0);
 
-  skel = skel_ptr;
   min_distance = std::numeric_limits<double>::max();
   log_start_time = ros::Time::now();
 
@@ -176,7 +175,7 @@ void data_recorder::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& m
 void data_recorder::skeleton_callback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx3);
     camera_keypoints = msg->data;
-    std::lock_guard<std::mutex> lck2(mtx4);
+    std::lock_guard<std::mutex> lck2(skel_pts_mtx);
     live_human_points.clear();
     for (int i=0;i<int(double(camera_keypoints.size())/3.0);i++) {
         live_human_points.push_back(Eigen::Vector3f(camera_keypoints[i*3],camera_keypoints[i*3+1],camera_keypoints[i*3+2]));
@@ -761,4 +760,39 @@ void humanCollisionObjects::read_human_task(int task_num, Eigen::Isometry3f tran
 
     }
 
+}
+
+void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state) {
+  visualization_msgs::Marker mkr;
+  mkr.header.frame_id = "world";
+  mkr.id = 20000;
+  mkr.type = 4;
+  mkr.pose.position.x = 0;
+  mkr.pose.position.y = 0;
+  mkr.pose.position.z = 0;
+  mkr.pose.orientation.w = 1;
+  mkr.pose.orientation.x = 0;
+  mkr.pose.orientation.y = 0;
+  mkr.pose.orientation.z = 0;
+  mkr.color.a = 1.0;
+  mkr.color.g = 1.0;
+  mkr.scale.x = 0.01;
+  mkr.lifetime = ros::Duration();
+  Eigen::VectorXd q1(6);
+  Eigen::VectorXd q2(6);
+  for (int i=1;i<plan.trajectory_.joint_trajectory.points.size();i++) {
+    for (int q=0;q<6;q++) q1[q] = plan.trajectory_.joint_trajectory.points[i-1].positions[q];
+    for (int q=0;q<6;q++) q2[q] = plan.trajectory_.joint_trajectory.points[i].positions[q];
+    Eigen::VectorXd diff = q2-q1;
+    int n = std::ceil(diff.norm()/0.1);
+    for (int j=0;j<n;j++) {
+      double pct = (double)j/(double)n;
+      Eigen::VectorXd q3 = q1+pct*diff;
+      state->setJointGroupPositions("edo",q3);
+      geometry_msgs::Pose pose;
+      tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+      mkr.points.push_back(pose.position);
+    }
+  }
+  nom_plan_pub.publish(mkr);
 }

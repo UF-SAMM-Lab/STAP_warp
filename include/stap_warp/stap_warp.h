@@ -1,3 +1,4 @@
+#pragma once
 #include <ros/ros.h>
 #include <rosdyn_core/primitives.h>
 #include <rosparam_utilities/rosparam_utilities.h>
@@ -6,6 +7,7 @@
 #include <eigen3/Eigen/Core>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/planning_scene/planning_scene.h>
 #include <avoidance_intervals/avoidance_model.h>
 #include <std_msgs/Float64.h>
 #include <visualization_msgs/Marker.h>
@@ -18,7 +20,7 @@ typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
 namespace stap {
 class stap_warper {
     public:
-        stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state, robot_model::RobotModelPtr model);
+        stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_);
         void warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js);
         void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
@@ -56,6 +58,6 @@ class stap_warper {
         std::mutex trj_mtx;
         ros::Time last_warp_time = ros::Time::now();
         std::vector<int> scale_vect_ids;
-
+        planning_scene::PlanningScenePtr planning_scene;
 };
 }

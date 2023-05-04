@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    avoidance_intervals::skeleton test_skeleton(nh,"/predicted_skeleton",0.05,0.1);
+    std::shared_ptr<avoidance_intervals::skeleton> test_skeleton = std::make_shared<avoidance_intervals::skeleton>(nh,"/predicted_skeleton",0.05,0.1);
 
     Eigen::Vector3f workspace_lb={-1,-1,0.5};
     Eigen::Vector3f workspace_ub={1,1,2.5};
@@ -80,13 +80,14 @@ int main(int argc, char** argv) {
 
 
     std::vector<Eigen::VectorXf> avoid_pts;
-    test_skeleton.publish_pts(avoid_pts);
+    test_skeleton->publish_pts(avoid_pts);
 
     // ros::Publisher vis_pub = nh.advertise<visualization_msgs::Marker>( "human_markers", 0 );
 
     ros::Publisher model_pub = nh.advertise<std_msgs::Float32>( "/model_disp_req", 0,false);
     ros::Publisher model_all_pub = nh.advertise<std_msgs::Bool>( "/model_disp_all_req", 0,false);
     ros::Publisher centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
+    ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
     std::string plan_group = "manipulator";
     if (!nh.getParam("/plan_group",plan_group))
     {
@@ -204,22 +205,22 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/minimum_distance", min_dist)) ROS_ERROR("couldn't read minimum_distance");
     std::vector<double> human_link_lengths2; 
     std::vector<double> human_link_radii2; 
-    test_skeleton.link_lengths_.resize(human_link_lengths.size());
-    test_skeleton.link_radii_.resize(human_link_lengths.size());
+    test_skeleton->link_lengths_.resize(human_link_lengths.size());
+    test_skeleton->link_radii_.resize(human_link_lengths.size());
     for (int i=0;i<human_link_radii.size();i++) {
       std::cout<<human_link_lengths[i]<<",";
-      test_skeleton.link_lengths_[i] = (float)human_link_lengths[i];
-      test_skeleton.link_radii_[i] = (float)human_link_radii[i];
+      test_skeleton->link_lengths_[i] = (float)human_link_lengths[i];
+      test_skeleton->link_radii_[i] = (float)human_link_radii[i];
       if (i==2) continue;
       human_link_lengths2.push_back(human_link_lengths[i]);
       human_link_radii2.push_back(human_link_radii[i]);
     }
     std::cout<<std::endl;
 
-    // test_skeleton.link_lengths_ = {0.5,0.2,0.35,0.35,0.35,0.35,0.35};
-    // test_skeleton.link_radii_ = {0.12,0.05,0.1,0.04,0.03,0.04,0.03};
+    // test_skeleton->link_lengths_ = {0.5,0.2,0.35,0.35,0.35,0.35,0.35};
+    // test_skeleton->link_radii_ = {0.12,0.05,0.1,0.04,0.03,0.04,0.03};
     ROS_INFO_STREAM("reading file ");
-    avoid_pts = test_skeleton.read_human_task(human_task_num,transform_to_world);
+    avoid_pts = test_skeleton->read_human_task(human_task_num,transform_to_world);
     ROS_INFO_STREAM("avoid pts size "<<avoid_pts.size());
     double avoid_offset = 0.0;
     nh.getParam("/test_sharework_cell/avoid_time_offset",avoid_offset);
@@ -236,7 +237,7 @@ int main(int argc, char** argv) {
 
 
     human_publisher show_human(nh);
-    show_human.skel = & test_skeleton;
+    show_human.skel = test_skeleton;
     show_human.model_pub = model_pub;
     show_human.stop_show_human();
 
@@ -244,10 +245,10 @@ int main(int argc, char** argv) {
     ros::Subscriber disp_sub = nh.subscribe<visualization_msgs::Marker>("/human_markers",1,disp_sub_callback);
   
     if (planner_id=="multigoal_ssm_test") {
-      test_skeleton.publish_pts(avoid_pts);
+      test_skeleton->publish_pts(avoid_pts);
       ros::Duration(2.0).sleep();
       if (0) {
-        for (int i =0; i < int(test_skeleton.end_time_*10);i++) {
+        for (int i =0; i < int(test_skeleton->end_time_*10);i++) {
           std_msgs::Float32 time_disp;
           time_disp.data = float(i/10);
           model_pub.publish(time_disp);
@@ -294,7 +295,7 @@ int main(int argc, char** argv) {
     rosdyn::ChainPtr chain = rosdyn::createChain(urdf_model, base_frame_, tool_frame, grav);
     std::string log_file= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_live.csv";
     std::string log_file2= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_solver_perf_live.csv";
-    data_recorder rec(nh,log_file, scene,&test_skeleton,model,state,human_link_lengths2,human_link_radii2,chain,log_file2);
+    data_recorder rec(nh,log_file, scene,test_skeleton,model,state,human_link_lengths2,human_link_radii2,chain,log_file2);
     ros::Timer start_human = nh.createTimer(ros::Duration(0.1),start_timer);
     start_human.stop();
 
@@ -302,10 +303,10 @@ int main(int argc, char** argv) {
     nh.getParam("/num_tests", num_tests);
     move_group.setMaxVelocityScalingFactor(1.0);
     move_group.setMaxAccelerationScalingFactor(1.0);
-    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model);
+    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
     for (int test_num=0;test_num<num_tests;test_num++) {
       std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
-      test_skeleton.publish_pts(std::vector<Eigen::VectorXf>());
+      test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
       // human_occupany.set_occupancy(std::vector<Eigen::VectorXf>());
       ros::Duration(2.0).sleep();
       model_all_pub.publish(show_all);
@@ -324,11 +325,11 @@ int main(int argc, char** argv) {
         continue;
       }
 
-      test_skeleton.publish_pts(avoid_pts);
-      test_skeleton.publish_sequence(0.0);
+      test_skeleton->publish_pts(avoid_pts);
+      test_skeleton->publish_sequence(0.0);
       if (use_collision_objects_initially) co_human.updateCollisionObjects(0.0);
 
-      geometry_msgs::PoseArray poses = test_skeleton.get_pose_at_time(0.0);
+      geometry_msgs::PoseArray poses = test_skeleton->get_pose_at_time(0.0);
       geometry_msgs::Pose p;
       if (poses.poses.size()>1) {
         p.position.x = 0.5*(poses.poses[0].position.x+poses.poses[1].position.x);
@@ -364,10 +365,10 @@ int main(int argc, char** argv) {
       //   avoid_pts[i][3] -= avoid_offset;
       //   avoid_pts[i][4] -= avoid_offset;
       // }
-      // test_skeleton.publish_pts(avoid_pts);
-      // test_skeleton.publish_sequence(avoid_offset);
+      // test_skeleton->publish_pts(avoid_pts);
+      // test_skeleton->publish_sequence(avoid_offset);
 
-      test_skeleton.publish_pts(std::vector<Eigen::VectorXf>());
+      test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
       // human_occupany.set_occupancy(std::vector<Eigen::VectorXf>());
 
       ros::Duration(2.0).sleep();
@@ -391,7 +392,7 @@ int main(int argc, char** argv) {
       }
       rec.plan_time = est_plan_time;
       if (((test_num-1)%5==0)||(test_num%5==0)||(test_num>15)) rec.plan_time = rec.avoid_plan_time;
-      test_skeleton.publish_pts(avoid_pts);
+      test_skeleton->publish_pts(avoid_pts);
       ros::Duration(1.0).sleep();
       bool showing_human = false;
       rec.stop();
@@ -428,7 +429,7 @@ int main(int argc, char** argv) {
           if (showing_human) {
             rec.stop();
             showing_human = false;
-            test_skeleton.publish_pts(std::vector<Eigen::VectorXf>());
+            test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
             ros::Duration(0.1).sleep();
             std_msgs::Float32 t_msg;
             t_msg.data = 0.0;

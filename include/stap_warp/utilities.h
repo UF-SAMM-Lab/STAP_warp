@@ -1,3 +1,4 @@
+#pragma once
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int64.h>
@@ -27,8 +28,11 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit_msgs/AllowedCollisionMatrix.h>
 #include <exception>
+#include <geometry_msgs/Point.h>
+#include <eigen_conversions/eigen_msg.h>
 
 void clearObstacles(void);
+void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state);
 
 class humanCollisionObjects {
     protected:
@@ -102,7 +106,7 @@ class human_publisher {
   void start_poses(double start_time2=0.0);
   void stop_poses(void);
   void resume_poses(void);
-  avoidance_intervals::skeleton *skel;
+  std::shared_ptr<avoidance_intervals::skeleton> skel;
   ros::Timer show_human_timer;
   ros::Timer pub_poses_timer;
   protected:
@@ -113,7 +117,7 @@ class human_occupancy_helper {
   public:
   human_occupancy_helper(ros::NodeHandle nh);
   void set_occupancy(std::vector<Eigen::VectorXf> avoid_pts);
-  avoidance_intervals::skeleton *skel;
+  std::shared_ptr<avoidance_intervals::skeleton> skel;
   protected:
   human_occupancy::OccupancyGridPtr grid_;
   ros::NodeHandle nh_;
@@ -135,11 +139,11 @@ class data_recorder {
   geometry_msgs::PoseArray pose_msg;
   int spd_scale=0;
   Eigen::VectorXd joint_pos_vec;
-  data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, avoidance_intervals::skeleton *skel_ptr,moveit::core::RobotModelConstPtr robot_model,robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path);
+  data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, std::shared_ptr<avoidance_intervals::skeleton> skel_ptr,moveit::core::RobotModelConstPtr robot_model,robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path);
   ~data_recorder();
   void start(void);
   void stop(void);
-  avoidance_intervals::skeleton *skel;
+  std::shared_ptr<avoidance_intervals::skeleton> skel;
   robot_state::RobotStatePtr state_;
   double plan_time;
   double get_min_dist(void);
@@ -154,6 +158,8 @@ class data_recorder {
     // std::cout<<cur_js<<std::endl;
     return cur_js;
   }
+  std::mutex skel_pts_mtx;
+  std::vector<Eigen::Vector3f> live_human_points;
   protected:
   ros::NodeHandle nh_;
   int n_dof_=0;
@@ -179,11 +185,9 @@ class data_recorder {
   std::mutex js_mtx;
   bool ready_ = false;
   std::vector<Eigen::Quaternionf> live_human_quats;
-  std::vector<Eigen::Vector3f> live_human_points;
   std::mutex mtx;
   std::mutex mtx2;
   std::mutex mtx3;
-  std::mutex mtx4;
   std::mutex mtx5;
   double tangential_speed;
   std::vector<Eigen::Quaternionf> human_quats;

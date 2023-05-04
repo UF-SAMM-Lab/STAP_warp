@@ -55,7 +55,12 @@ int main(int argc, char** argv) {
     const robot_state::JointModelGroup* joint_model_group_ = move_group.getCurrentState()->getJointModelGroup(PLANNING_GROUP);
     robot_model_loader::RobotModelLoaderPtr robot_model_loader = robot_model_loader::RobotModelLoaderPtr(new robot_model_loader::RobotModelLoader("robot_description"));
     const robot_model::RobotModelPtr& model = robot_model_loader->getModel();
-    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model);
+
+    planning_scene_monitor::PlanningSceneMonitorPtr monitor;
+    monitor.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_model_loader));
+    planning_scene::PlanningScenePtr ps_ptr = monitor->getPlanningScene();
+
+    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
     std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> vel_profile;
     stap_warp.time_parameterize(plan,vel_profile);
     std::cout<<plan<<std::endl;

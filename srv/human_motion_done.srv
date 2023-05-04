@@ -1,0 +1,4 @@
+bool active_hand
+float32[] reach_target
+---
+bool done

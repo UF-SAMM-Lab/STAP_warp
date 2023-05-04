@@ -1,26 +1,44 @@
+#pragma once
 #include <ros/ros.h>
 #include <string>
 #include <memory>
+#include <thread>
+#include <mutex>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <stap_warp/human_prediction.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 #include <std_msgs/Float64MultiArray.h>
+#include <std_msgs/Float32MultiArray.h>
+#include <std_msgs/Bool.h>
 #include <stap_warp/joint_seq.h>
 #include <stap_warp/joint_seq_elem.h>
 #include <stap_warp/utilities.h>
+#include <stap_warp/stap_warp.h>
+#include <stap_warp/human_motion_done.h>
+#include <stap_warp/human_motion_reset.h>
 
 namespace stap_test {
 class human {
     public:
-        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub);
+        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt);
         void get_predicted_motion(std::vector<float> start_pose);
         void show_human(std::vector<float> link_len,std::vector<float> link_r);
         std::vector<float> get_last_pose(void) {return end_pose;}
         float get_start_delay(void) {return start_delay;}
         int get_prior_robot_task(void) {return prior_robot_task;}
-        std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> get_seq(int i) {return sequence[i];}
-        int get_seq_size(void) {return sequence.size();}
+        std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> get_seq(int i);
+        int get_seq_size(void);
+        std::vector<float> get_tgt(void) {return reach_target;}
+        bool arm_right = true;
+        bool arm_left = false;
+        void set_dimensions(std::vector<float> link_len,std::vector<float> link_r) {
+            link_lengths_ = link_len;
+            radii = link_r;
+        }
+        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f>& link_centroids, std::vector<Eigen::Quaternionf>& link_quats, Eigen::Matrix3Xd& human_points);
+        std::vector<float> link_lengths_;
+        std::vector<float> radii;
     private:
         int id = 0;
         int prior_robot_task = -1;
@@ -28,22 +46,19 @@ class human {
         float start_delay = 0.0;
         std::vector<float> reach_target;
         float end_delay = 0.0;
-        bool arm_right = true;
-        bool arm_left = false;
         std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> sequence;
         std::vector<float> end_pose;
         std::shared_ptr<ros::ServiceClient> predictor;
         std::shared_ptr<ros::Publisher> seq_pub;
-        void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f> &link_centroids, std::vector<Eigen::Quaternionf> &link_quats, Eigen::MatrixXd& human_points);
-        std::vector<float> link_lengths_;
-        std::vector<float> radii;
+        float prediction_dt = 0.1;
 };
 class humans {
     public:
-        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub);
+        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel);
         void predicted_motion(void);
         void show_predictions(std::vector<float> link_len,std::vector<float> link_r);
         float pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq);
+        void generate_full_sequence(int start_seq, int robot_step, float start_tm_in_robot_seq);
         float human_start_delay(int human) {
             if ((human<0)||(human>=data.size())) return 0.0;
             return data[human].get_start_delay();
@@ -54,20 +69,35 @@ class humans {
         }
         int get_num_steps(void) {return data.size();}
         std::vector<std::pair<float,Eigen::MatrixXd>> full_joint_seq;
-
+        std::vector<std::pair<float,std::vector<Eigen::Vector3f>>> full_joint_seq_f;
+        std::vector<std::pair<float,std::vector<Eigen::Quaternionf>>> full_quat_seq;
+        bool is_step_done(int step);
+        void update_predictions(int cur_step, std::vector<float> cur_pose, int robot_step, double current_robot_time);
+        std::mutex joint_seq_mtx;
+        void reset_motion_done(void);
+        void set_dimensions(std::vector<float> link_len,std::vector<float> link_r) {
+            for (int i=0;i<data.size();i++) data[i].set_dimensions(link_len,link_r);
+        }
+        void show_sequence(void);
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;
         std::vector<human> data;
         std::vector<float> start_pose;
         std::shared_ptr<ros::ServiceClient> predictor;
+        std::shared_ptr<ros::Publisher> seq_pub;
         ros::NodeHandle nh;
+        std::shared_ptr<avoidance_intervals::skeleton> skel;
+        ros::ServiceClient human_done_srv;
+        ros::ServiceClient human_reset_srv;
+        float prediction_dt = 0.1;
 };
 class robot_segment {
     public:
         robot_segment(ros::NodeHandle nh, int idx);
         double planned_time = 0.0;
         int get_goal_id(void){return goal_id;}
+        int get_type(void){return type;}
         moveit::planning_interface::MoveGroupInterface::Plan plan;
     private:
         int id = 0;
@@ -79,12 +109,16 @@ class robot_segment {
 };
 class robot_sequence {
     public:
-        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec);
+        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_);
         double plan_robot_segment(int seg_num, std::vector<double>& start_joint);
         int num_segments(void) {
             return data.size();
         }
         bool do_segment(int seg_num);
+        bool is_segment_active(void) {return segment_active;}
+        ~robot_sequence() {
+            if (segment_thread.joinable()) segment_thread.join();
+        }
     private:
         robot_state::RobotStatePtr state;
         robot_model::RobotModelPtr model;
@@ -94,11 +128,17 @@ class robot_sequence {
         std::vector<std::vector<double>> goals_angles;
         ros::NodeHandle nh;
         ros::Subscriber planner_sub;
+        ros::Publisher nom_plan_pub;
+        ros::Publisher grip_pos_pub;
+        ros::Publisher grip_pub;
         void perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
         double plan_time = 0.0;
         ros::Time last_perf_received;
         std::shared_ptr<stap_test::humans> human_data;
         std::shared_ptr<data_recorder> rec;
-        void segment_thread(int seg_num);
+        void segment_thread_fn(int seg_num);
+        stap::stap_warper stap_warper;
+        std::thread segment_thread;
+        bool segment_active = false;
 };
 }
