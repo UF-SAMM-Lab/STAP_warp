@@ -1,6 +1,6 @@
 test_sequence:
   robot_poses:
-    length: 5
+    length: 6
     "0": [0,0.8,0.8,0,0.8,0]
     "1": [3.0,0.8,0.8,0,0.8,0]
     "2": [3.0,0.6,0.8,0,0.8,0]
@@ -8,7 +8,7 @@ test_sequence:
     "4": [1.57,0.5,1.3,0,1.3,0]
     "5": [1.57,0,0,0,0,0]
   robot_sequence:
-    length: 10
+    length: 11
     "0":
       description: "go to start position"
       type: 0
@@ -74,7 +74,7 @@ test_sequence:
       after_human_task: -1
       start_delay: 0.0
   human_sequence:
-    length: 6
+    length: 7
     start_pose: []
     "0":
       description: "pick up the connecting rod"
