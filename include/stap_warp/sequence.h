@@ -99,6 +99,8 @@ class robot_segment {
         int get_goal_id(void){return goal_id;}
         int get_type(void){return type;}
         moveit::planning_interface::MoveGroupInterface::Plan plan;
+        std::string pipeline;
+        std::string planner;
     private:
         int id = 0;
         std::string description = "";

@@ -29,6 +29,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     float elapsed_tm = std::round(10.0*start_tm_in_robot_seq)*0.1;
     int s = 0;
     float dt = prediction_dt;
+    bool some_points = false;
     for (s=start_seq;s<data.size();s++) {
         ROS_INFO_STREAM("prior:"<<data[s].get_prior_robot_task()<<",robot_step"<<robot_step);
         if (data[s].get_prior_robot_task()>=robot_step) break;
@@ -42,6 +43,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                     seq_elem.joint_pos = std::get<1>(data[s].get_seq(0));
                     seq_elem.quats = std::get<2>(data[s].get_seq(0));
                     seq_msg.sequence.push_back(seq_elem);
+                    some_points = true;
                 }
                 elapsed_tm += dt;
             }
@@ -56,9 +58,18 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                 seq_elem.joint_pos = std::get<1>(data[s].get_seq(i));
                 seq_elem.quats = std::get<2>(data[s].get_seq(i));
                 seq_msg.sequence.push_back(seq_elem);
+                some_points = true;
             }
         }
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()-1))+dt;
+    }
+    if ((!some_points) && (s>0)) {
+        stap_warp::joint_seq_elem seq_elem;
+        seq_elem.time = 0.0;
+        ROS_INFO_STREAM("seq time3:"<<seq_elem.time);
+        seq_elem.joint_pos = std::get<1>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+        seq_elem.quats = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+        seq_msg.sequence.push_back(seq_elem);
     }
     human_model_pub.publish(seq_msg);
     std::lock_guard<std::mutex> l(joint_seq_mtx);
@@ -76,6 +87,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     full_joint_seq.clear();
     full_joint_seq_f.clear();
     full_quat_seq.clear();
+    bool some_points = false;
     for (s=start_seq;s<data.size();s++) {
         if (data[s].get_prior_robot_task()>=robot_step) break;
         if (data[s].get_start_delay()>0.0)  {
@@ -91,6 +103,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
                     std::vector<float> tmp_quat_vec = std::get<2>(data[s].get_seq(0));
                     for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
                     full_quat_seq.emplace_back(elapsed_tm,tmp_quats);
+                    some_points = true;
                 }
                 elapsed_tm += dt;
             }
@@ -107,9 +120,21 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
                 std::vector<float> tmp_quat_vec = std::get<2>(data[s].get_seq(i));
                 for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
                 full_quat_seq.emplace_back(elapsed_tm,tmp_quats);
+                some_points = true;
             }
         }
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()))+dt;
+    }
+    if ((!some_points) && (s>0)) {
+        full_joint_seq.emplace_back(0.0,std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1)));
+        Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+        std::vector<Eigen::Vector3f> tmp_jnts;
+        for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
+        full_joint_seq_f.emplace_back(0.0,tmp_jnts);
+        std::vector<Eigen::Quaternionf> tmp_quats;
+        std::vector<float> tmp_quat_vec = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+        for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
+        full_quat_seq.emplace_back(0.0,tmp_quats);
     }
 }
 
@@ -426,7 +451,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     move_group.setPlanningPipelineId("irrt_avoid");
     move_group.setPlannerId("irrta");
     double planning_time = 5.0;
-    nh.getParam("/sequence_test/planning_time", planning_time);
+    nh.getParam("/test_sequence/planning_time", planning_time);
     move_group.setPlanningTime(planning_time);
     planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
     last_perf_received = ros::Time::now();
@@ -450,6 +475,8 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     if ((seg_num<0)||(seg_num>data.size())) return 0.0;
     ROS_INFO_STREAM("planning for segment:"<<seg_num);
     if (data[seg_num].get_type()==0) {
+        move_group.setPlanningPipelineId(data[seg_num].pipeline);
+        move_group.setPlannerId(data[seg_num].planner);
         for (int i = 0;i<6;i++) std::cout<<start_joint[i]<<",";
         std::cout<<"->";
         for (int i = 0;i<6;i++) std::cout<<goals_angles[data[seg_num].get_goal_id()][i]<<",";
@@ -532,6 +559,8 @@ robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
     std::cout<<" type:"<<type<<",";
     nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
     std::cout<<" prior_human_task:"<<prior_human_task<<std::endl;
+    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
+    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/planner", planner);
 }
 
 

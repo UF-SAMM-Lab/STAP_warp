@@ -1,4 +1,5 @@
 test_sequence:
+  planning_time: 30.0
   robot_poses:
     length: 6
     "0": [0,0.8,0.8,0,0.8,0]
@@ -15,18 +16,24 @@ test_sequence:
       goal: 0
       after_human_task: -1
       start_delay: 0.0
+      pipeline: irrt_avoid
+      planner: irrta
     "1":
       description: "go to pick perch over piston"
       type: 0
       goal: 2
       after_human_task: -1
       start_delay: 0.0
+      pipeline: irrt_avoid
+      planner: irrta
     "2":
       description: "go to pick piston"
       type: 0
       goal: 1
       after_human_task: -1
       start_delay: 0.0
+      pipeline: ompl
+      planner: bitrrt
     "3":
       description: "close gripper"
       type: 1
@@ -38,21 +45,27 @@ test_sequence:
       goal: 2
       after_human_task: -1
       start_delay: 0.0
+      pipeline: ompl
+      planner: bitrrt
     "5":
       description: "go to place perch over piston fixture"
       type: 0
       goal: 3
       after_human_task: -1
       start_delay: 0.0
+      pipeline: irrt_avoid
+      planner: irrta
     "6":
-      description: "open gripper"
-      type: 2
-      after_human_task: -1
-      start_delay: 0.0
-    "7":
       description: "go to place piston in fixture"
       type: 0
       goal: 4
+      after_human_task: -1
+      start_delay: 0.0
+      pipeline: ompl
+      planner: bitrrt
+    "7":
+      description: "open gripper"
+      type: 2
       after_human_task: -1
       start_delay: 0.0
     "8":
@@ -61,18 +74,24 @@ test_sequence:
       goal: 3
       after_human_task: -1
       start_delay: 0.0
+      pipeline: ompl
+      planner: bitrrt
     "9":
       description: "back away from workspace"
       type: 0
       goal: 5
       after_human_task: -1
       start_delay: 0.0
+      pipeline: irrt_avoid
+      planner: irrta
     "10":
       description: "go to perch over the next piston"
       type: 0
       goal: 1
       after_human_task: -1
       start_delay: 0.0
+      pipeline: irrt_avoid
+      planner: irrta
   human_sequence:
     length: 7
     start_pose: []
@@ -88,23 +107,30 @@ test_sequence:
       after_robot_task: 0
       after_human_task: -1
       start_delay: 2.0
-      reach_target: [-0.2,0.7,0.2]
+      reach_target: [-0.3,0.65,0.2]
       arm: "right"
     "2":
+      description: "ensure the left arm is out of the way"
+      after_robot_task: 0
+      after_human_task: -1
+      start_delay: 0.0
+      reach_target: [0.2,0.8,-0.1]
+      arm: "left"
+    "3":
       description: "place connecting rod in piston"
       after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.0,0.4,0.1]
       arm: "right"
-    "3":
+    "4":
       description: "rest right arm"
       after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.2,0.8,-0.1]
       arm: "right"
-    "4":
+    "5":
       description: "pick up the pin"
       after_robot_task: 9
       after_human_task: -1
@@ -112,7 +138,7 @@ test_sequence:
       reach_target: [0.2,0.5,0.00]
       end_delay: 2.0
       arm: "left"
-    "5":
+    "6":
       description: "insert pin through piston and rod"
       after_robot_task: 9
       after_human_task: -1
@@ -120,11 +146,18 @@ test_sequence:
       reach_target: [-0.0,0.4,0.05]
       end_delay: 2.0
       arm: "left"
-    "6":
+    "7":
       description: "put the piston rod assembly into the block"
       after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.2,0.4,0.2]
       end_delay: 2.0
+      arm: "left"
+    "8":
+      description: "ensure the left arm is out of the way"
+      after_robot_task: 0
+      after_human_task: -1
+      start_delay: 0.0
+      reach_target: [0.2,0.8,-0.1]
       arm: "left"
