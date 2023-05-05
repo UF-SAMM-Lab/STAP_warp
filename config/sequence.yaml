@@ -33,7 +33,7 @@ test_sequence:
       after_human_task: -1
       start_delay: 0.0
       pipeline: ompl
-      planner: bitrrt
+      planner: BiTRRT
     "3":
       description: "close gripper"
       type: 1
@@ -46,7 +46,7 @@ test_sequence:
       after_human_task: -1
       start_delay: 0.0
       pipeline: ompl
-      planner: bitrrt
+      planner: BiTRRT
     "5":
       description: "go to place perch over piston fixture"
       type: 0
@@ -62,7 +62,7 @@ test_sequence:
       after_human_task: -1
       start_delay: 0.0
       pipeline: ompl
-      planner: bitrrt
+      planner: BiTRRT
     "7":
       description: "open gripper"
       type: 2
@@ -75,7 +75,7 @@ test_sequence:
       after_human_task: -1
       start_delay: 0.0
       pipeline: ompl
-      planner: bitrrt
+      planner: BiTRRT
     "9":
       description: "back away from workspace"
       type: 0
