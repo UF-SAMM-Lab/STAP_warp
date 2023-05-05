@@ -796,3 +796,47 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
   }
   nom_plan_pub.publish(mkr);
 }
+
+moveit_msgs::CollisionObject createCollisionBox(Eigen::Vector3f dims, Eigen::Vector3f position, Eigen::Quaternionf quat, std::string id)
+{
+    moveit_msgs::CollisionObject collision_objects;
+
+    tf2::Quaternion quat_tf;
+    geometry_msgs::Quaternion quat_msg;
+
+    moveit_msgs::CollisionObject collisionObj;
+    collisionObj.header.frame_id = "world";
+    collisionObj.id = id;
+    shape_msgs::SolidPrimitive co_shape;
+    co_shape.type = co_shape.BOX;
+    co_shape.dimensions.resize(3);
+    co_shape.dimensions[0] = dims[0];
+    co_shape.dimensions[1] = dims[1];
+    co_shape.dimensions[2] = dims[2];
+
+    geometry_msgs::Pose co_pose;
+    co_pose.position.x = position[0];
+    co_pose.position.y = position[1];
+    co_pose.position.z = position[2];
+    // quat_tf.setRPY(rpy[0], rpy[1],rpy[2]);
+    // quat_msg = tf2::toMsg(quat_tf);
+    co_pose.orientation.x = quat.x();
+    co_pose.orientation.y = quat.y();
+    co_pose.orientation.z = quat.z();
+    co_pose.orientation.w = quat.w();
+    collisionObj.pose=co_pose;
+    collisionObj.primitives.push_back(co_shape);
+    co_pose.position.x = 0;
+    co_pose.position.y = 0;
+    co_pose.position.z = 0;
+    // quat_tf.setRPY(rpy[0], rpy[1],rpy[2]);
+    // quat_msg = tf2::toMsg(quat_tf);
+    co_pose.orientation.x = 0;
+    co_pose.orientation.y = 0;
+    co_pose.orientation.z = 0;
+    co_pose.orientation.w = 1;
+    collisionObj.primitive_poses.push_back(co_pose);
+    collisionObj.operation = collisionObj.ADD;
+
+    return collisionObj;
+}

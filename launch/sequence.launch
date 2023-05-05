@@ -21,6 +21,7 @@
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg     if="$(arg debug)" name="launch_prefix"
            value="gdb --ex run --args" /> 
+    <arg name="simulated" default="false" />
 
     <rosparam file="$(find stap_warp)/config/sequence.yaml" command="load"/>
 
@@ -30,7 +31,7 @@
     <include file="$(find human_prediction)/launch/predict_service.launch"/>
     <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
     <node name="sequence_test" pkg="stap_warp" type="sequence_test" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
-        <param name="avoid_time_offset" value="$(arg avoid_time_offset)"/>
+        <param name="simulated" value="$(arg simulated)"/>
     </node> 
     <!-- launch-prefix="gdb -ex run  -args"> -->
     <!-- "gdb -.-ex run -.-args"  -->

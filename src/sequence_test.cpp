@@ -40,8 +40,9 @@ void goal_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr
 // }
 
 void skel_quats_cb(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+    if (msg->data.size()<2) return;
     std::lock_guard<std::mutex> lck(skel_mtx);
-    human_quat_pose = msg->data;
+    human_quat_pose = std::vector<float>(msg->data.begin()+1,msg->data.end());
     // live_human_quats.clear();
     // for (int i=0;i<7;i++){
     //     live_human_quats.push_back(Eigen::Quaternionf(pose_elements[i*4+4],pose_elements[i*4+5],pose_elements[i*4+6],pose_elements[i*4+7]));
@@ -63,11 +64,18 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/ctrl_ns",ctrl_ns))
     {
       ROS_WARN("ctrl_ns is not defined");
+    }    
+    bool simulated = true;
+    if (!nh.getParam("/sequence_test/simulated",simulated))
+    {
+      ROS_WARN("/sequence_test/simulated is not set");
     }
+    
     ros::Publisher pub_cancel_traj = nh.advertise<actionlib_msgs::GoalID>( ctrl_ns+"/follow_joint_trajectory/cancel", 0,false);
     actionlib_msgs::GoalID goal_id_msg;
     ros::Subscriber sub_goal = nh.subscribe<control_msgs::FollowJointTrajectoryActionGoal>(ctrl_ns+"/follow_joint_trajectory/goal",1,goal_callback);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
+    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
     //do a test with no obsctacles:
     std::vector<double> start_joint;
     std::vector<double> goal_joint;
@@ -112,6 +120,19 @@ int main(int argc, char** argv) {
 
     std::string resp = "y";
     clearObstacles();
+
+    moveit::planning_interface::PlanningSceneInterface current_scene;
+    // add collision box object to avoid hitting fixtures
+    ros::ServiceClient planning_scene_diff_client = nh.serviceClient<moveit_msgs::ApplyPlanningScene>("apply_planning_scene");
+    planning_scene_diff_client.waitForExistence();
+    moveit_msgs::ApplyPlanningScene srv;
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.is_diff = true;
+    planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.4,0.3,0.15),Eigen::Vector3f(-0.4,0.4,0.075),Eigen::Quaternionf(0,1,0,0),"fixtures"));
+    srv.request.scene = planning_scene_msg;
+    // srv.request. = ps_ptr->getAllowedCollisionMatrix();
+    planning_scene_diff_client.call(srv);
+
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
       ROS_INFO("waiting for predict_human service");
@@ -122,7 +143,7 @@ int main(int argc, char** argv) {
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
-    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
 
@@ -154,7 +175,7 @@ int main(int argc, char** argv) {
     std::string log_file= ros::package::getPath("stap_warp")+"/data/sequence_sim.csv";
     std::string log_file2= ros::package::getPath("stap_warp")+"/data/sequence_solver_perf_sim.csv";
     std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
-    stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr);
+    stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr,pub_txt);
     human_data->predicted_motion();
     human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
@@ -179,22 +200,37 @@ int main(int argc, char** argv) {
       }
       last_human_time = human_data->pub_model(h,i,-segment_time);
       human_data->show_sequence();
-      std::cout<<"see the motion"<<std::endl;
-      std::cin.ignore();
+      // std::cout<<"see the motion"<<std::endl;
+      // std::cin.ignore();
       ros::Duration(0.5).sleep();
       double planned_time = robot_data.plan_robot_segment(i,last_waypoint);
       segment_time += planned_time;
       ROS_INFO_STREAM("preplanned robot segment "<<i<<" with est. time of "<<planned_time);
     }
+    ROS_INFO_STREAM("ready to start when a person is in the cell");
+    if (!simulated) {
+      while (!rec->ready()) {
+        ROS_INFO_STREAM_ONCE("/poses not publishing yet");
+        ros::Duration(1.0).sleep();
+      }
+    }
+
+    robot_data.set_gripper(true);
+
     ros::Rate r(100);
     //now attempt execution
     int robot_step = 0;
     int human_step = 0;
+    human_data->reset_motion_done();
     while (ros::ok()) {
       if (robot_step>=robot_data.num_segments()) break;
       if (!robot_data.is_segment_active()) {
-        robot_data.do_segment(robot_step);
-        robot_step++;
+        if (robot_data.get_prior_human_step(robot_step)<human_step) {
+          robot_data.do_segment(robot_step);
+          robot_step++;
+        } else {
+          ROS_INFO_STREAM_THROTTLE(10,"waiting to start robot segment "<<robot_step<<" until human step "<<robot_data.get_prior_human_step(robot_step)<<" is done");
+        }
       }
       human_data->update_predictions(human_step,human_quat_pose,robot_step,0.0);
       if (human_data->is_step_done(human_step)) {
@@ -205,6 +241,15 @@ int main(int argc, char** argv) {
       r.sleep();
     } 
     while (!robot_data.is_segment_active()) ros::Duration(0.1).sleep();
+    while (human_step<human_data->get_num_steps()) {
+      ROS_INFO_STREAM_THROTTLE(5,"waiting for the human to finish tasks:"<<human_step);
+      if (human_data->is_step_done(human_step)) {
+        human_step++;
+        human_data->reset_motion_done();
+      }
+      if (human_step>=human_data->get_num_steps()) break;
+      ros::Duration(0.1).sleep();
+    }
     ROS_INFO("done!");
 
 

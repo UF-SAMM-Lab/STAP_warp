@@ -39,10 +39,11 @@ class human {
         void forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f>& link_centroids, std::vector<Eigen::Quaternionf>& link_quats, Eigen::Matrix3Xd& human_points);
         std::vector<float> link_lengths_;
         std::vector<float> radii;
+        std::string description = "";
+        bool check_pos = false;
     private:
         int id = 0;
         int prior_robot_task = -1;
-        std::string description = "";
         float start_delay = 0.0;
         std::vector<float> reach_target;
         float end_delay = 0.0;
@@ -54,7 +55,7 @@ class human {
 };
 class humans {
     public:
-        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel);
+        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt);
         void predicted_motion(void);
         void show_predictions(std::vector<float> link_len,std::vector<float> link_r);
         float pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq);
@@ -91,6 +92,7 @@ class humans {
         ros::ServiceClient human_done_srv;
         ros::ServiceClient human_reset_srv;
         float prediction_dt = 0.1;
+        std::shared_ptr<ros::Publisher> pub_txt;
 };
 class robot_segment {
     public:
@@ -98,12 +100,13 @@ class robot_segment {
         double planned_time = 0.0;
         int get_goal_id(void){return goal_id;}
         int get_type(void){return type;}
+        int get_prior_human_task(void){return prior_human_task;}
         moveit::planning_interface::MoveGroupInterface::Plan plan;
         std::string pipeline;
         std::string planner;
+        std::string description = "";
     private:
         int id = 0;
-        std::string description = "";
         int type = 0;
         int prior_human_task = -1;
         double start_delay = 0.0;
@@ -111,7 +114,7 @@ class robot_segment {
 };
 class robot_sequence {
     public:
-        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_);
+        robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_, std::shared_ptr<ros::Publisher> pub_txt);
         double plan_robot_segment(int seg_num, std::vector<double>& start_joint);
         int num_segments(void) {
             return data.size();
@@ -121,6 +124,8 @@ class robot_sequence {
         ~robot_sequence() {
             if (segment_thread.joinable()) segment_thread.join();
         }
+        int get_prior_human_step(int seg_num);
+        void set_gripper(bool open);
     private:
         robot_state::RobotStatePtr state;
         robot_model::RobotModelPtr model;
@@ -142,5 +147,6 @@ class robot_sequence {
         stap::stap_warper stap_warper;
         std::thread segment_thread;
         bool segment_active = false;
+        std::shared_ptr<ros::Publisher> pub_txt;
 };
 }

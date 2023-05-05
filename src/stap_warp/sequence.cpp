@@ -2,7 +2,7 @@
 
 namespace stap_test {
 
-humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub) {
+humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub),pub_txt(pub_txt) {
     nh.getParam("/test_sequence/human_sequence/start_pose", start_pose);
     if (start_pose.size()==0) {
         start_pose = cur_pose;
@@ -66,7 +66,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     if ((!some_points) && (s>0)) {
         stap_warp::joint_seq_elem seq_elem;
         seq_elem.time = 0.0;
-        ROS_INFO_STREAM("seq time3:"<<seq_elem.time);
+        ROS_INFO_STREAM("seq time3:"<<seq_elem.time<<","<<s-1);
         seq_elem.joint_pos = std::get<1>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
         seq_elem.quats = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
         seq_msg.sequence.push_back(seq_elem);
@@ -123,7 +123,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
                 some_points = true;
             }
         }
-        elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()))+dt;
+        elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()-1))+dt;
     }
     if ((!some_points) && (s>0)) {
         full_joint_seq.emplace_back(0.0,std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1)));
@@ -135,6 +135,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
         std::vector<float> tmp_quat_vec = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
         for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
         full_quat_seq.emplace_back(0.0,tmp_quats);
+        ROS_INFO_STREAM("no points:"<<s-1);
     }
 }
 
@@ -148,6 +149,25 @@ void humans::predicted_motion(void) {
 
 void humans::show_predictions(std::vector<float> link_len,std::vector<float> link_r) {
     for (int i=0;i<data.size();i++) {
+        visualization_msgs::Marker mkr;
+        mkr.id=105;
+        mkr.lifetime = ros::Duration(5.0);
+        mkr.type=mkr.TEXT_VIEW_FACING;
+        mkr.color.r=1.0;
+        mkr.color.b=1.0;
+        mkr.color.g=1.0;
+        mkr.color.a=1.0;
+        mkr.pose.position.x = -1;
+        mkr.pose.position.y = 0;
+        mkr.pose.position.z = 1;
+        mkr.pose.orientation.x = 1;
+        mkr.pose.orientation.y = 0;
+        mkr.pose.orientation.z = 0;
+        mkr.pose.orientation.w = 0;
+        mkr.scale.z = 0.3;
+        mkr.header.frame_id = "world";
+        mkr.text = data[i].description;
+        pub_txt->publish(mkr);
         data[i].show_human(link_len,link_r);
     }
     
@@ -155,6 +175,7 @@ void humans::show_predictions(std::vector<float> link_len,std::vector<float> lin
 
 bool humans::is_step_done(int step) {
     if ((step<0)||(step>data.size())) return false;
+    if (!data[step].check_pos) return true;
     stap_warp::human_motion_done srv;
     srv.request.reach_target = data[step].get_tgt();
     srv.request.active_hand = !data[step].arm_right;
@@ -246,6 +267,8 @@ human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> pr
     if (arm_string=="left") arm_left = true;
     arm_right = !arm_left;
     nh.getParam("/human_link_radii", radii);
+    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/check_pos", check_pos);
+
 }
 
 void human::get_predicted_motion(std::vector<float> start_pose) {
@@ -271,7 +294,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             std::vector<Eigen::Vector3f> link_centroids;
             std::vector<Eigen::Quaternionf> link_quats;
             forward_kinematics(quat_vec,link_centroids,link_quats,joint_mat);
-            std::cout<<joint_mat<<std::endl;
+            // std::cout<<joint_mat<<std::endl;
             for (int j=0;j<joint_mat.cols();j++) {
                 for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.col(j)[k]);
             }
@@ -279,7 +302,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             i+=n_cols;
             if (i>srv.response.pose_sequence.data.size()-n_cols) break;
         }
-        ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
+        // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
         end_pose = std::get<2>(sequence.back());
     }
 }
@@ -383,7 +406,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     start_color[2] = 0;
     Eigen::Vector3f color_diff(1,0,0);
     color_diff-=start_color;
-    ros::Rate r(10);
+    ros::Rate r(50);
     for (int i=0;i<sequence.size();i++) {
         std::vector<Eigen::Vector3f> link_centroids;
         std::vector<Eigen::Quaternionf> link_quats;
@@ -398,9 +421,9 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
             mkr.lifetime = ros::Duration(5);
             mkr.type=mkr.CYLINDER;
             Eigen::Vector3f c = color_diff*((double)i/(double)sequence.size())+start_color;
-            mkr.color.r=c[0];
-            mkr.color.b=c[1];
-            mkr.color.g=c[2];
+            mkr.color.r=1.0;//c[0];
+            mkr.color.b=0.0;//c[1];
+            mkr.color.g=0.0;//c[2];
             mkr.color.a=1.0;
             mkr.pose.position.x = link_centroids[b][0];
             mkr.pose.position.y = link_centroids[b][1];
@@ -427,7 +450,7 @@ int human::get_seq_size(void) {
     return sequence.size();
 }
 
-robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_):nh(nh),state(state),model(model),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_) {
+robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_,std::shared_ptr<ros::Publisher> pub_txt):nh(nh),state(state),model(model),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_),pub_txt(pub_txt) {
     if (!nh.getParam("/test_sequence/robot_sequence/length", num_steps))
     {
       ROS_ERROR("/test_sequence/robot_sequence/length is not defined in sequence.yaml");
@@ -450,6 +473,8 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     }
     move_group.setPlanningPipelineId("irrt_avoid");
     move_group.setPlannerId("irrta");
+    move_group.setMaxVelocityScalingFactor(1.0);            //time parametrization
+    move_group.setMaxAccelerationScalingFactor(1.0);    //time parametrization
     double planning_time = 5.0;
     nh.getParam("/test_sequence/planning_time", planning_time);
     move_group.setPlanningTime(planning_time);
@@ -462,17 +487,39 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     gripper_pos.data.push_back(30.0);
     gripper_pos.data.push_back(0);
     grip_pos_pub.publish(gripper_pos);
+    std_msgs::Bool gripper_msg;
+    gripper_msg.data = true;
+    grip_pub.publish(gripper_msg);
 }
 
 void robot_sequence::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
     if (msg->data.empty()) return;
-    plan_time = msg->data.back();
+    plan_time = std::min(msg->data.back(),20.0);
     ROS_INFO_STREAM("perf plan time:"<<plan_time);
     last_perf_received = ros::Time::now();
 }
 
 double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& start_joint) {
     if ((seg_num<0)||(seg_num>data.size())) return 0.0;
+    visualization_msgs::Marker mkr;
+    mkr.id=105;
+    mkr.lifetime = ros::Duration(5.0);
+    mkr.type=mkr.TEXT_VIEW_FACING;
+    mkr.color.r=1.0;
+    mkr.color.b=1.0;
+    mkr.color.g=1.0;
+    mkr.color.a=1.0;
+    mkr.pose.position.x = -1;
+    mkr.pose.position.y = 0;
+    mkr.pose.position.z = 1;
+    mkr.pose.orientation.x = 1;
+    mkr.pose.orientation.y = 0;
+    mkr.pose.orientation.z = 0;
+    mkr.pose.orientation.w = 0;
+    mkr.scale.z = 0.3;
+    mkr.header.frame_id = "world";
+    mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
+    pub_txt->publish(mkr);
     ROS_INFO_STREAM("planning for segment:"<<seg_num);
     if (data[seg_num].get_type()==0) {
         move_group.setPlanningPipelineId(data[seg_num].pipeline);
@@ -489,9 +536,13 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
         ros::Time plan_req_time = ros::Time::now();
         bool plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
         std::cout<<(last_perf_received-plan_req_time).toSec()<<std::endl;
-        while ((last_perf_received-plan_req_time).toSec()<0.0) {
-            ros::Duration(0.1).sleep();
-            ROS_INFO("waiting for planner time estimate");
+        if (data[seg_num].pipeline=="irrt_avoid") {
+            while ((last_perf_received-plan_req_time).toSec()<0.0) {
+                ros::Duration(0.1).sleep();
+                ROS_INFO("waiting for planner time estimate");
+            }
+        } else {
+            plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
         }
         if (plan_success) {
             data[seg_num].plan = plan;
@@ -527,13 +578,13 @@ void robot_sequence::segment_thread_fn(int seg_num) {
     }
     else if (data[seg_num].get_type()==1) {
         std_msgs::Bool gripper_msg;
-        gripper_msg.data = true;
+        gripper_msg.data = false;
         grip_pub.publish(gripper_msg);
         ros::Duration(0.5).sleep();
     }
     else if (data[seg_num].get_type()==2) {
         std_msgs::Bool gripper_msg;
-        gripper_msg.data = false;
+        gripper_msg.data = true;
         grip_pub.publish(gripper_msg);
         ros::Duration(0.5).sleep();
     }
@@ -543,9 +594,39 @@ void robot_sequence::segment_thread_fn(int seg_num) {
 bool robot_sequence::do_segment(int seg_num) {
     if (segment_active) return false;
     if (segment_thread.joinable()) segment_thread.join();
+    visualization_msgs::Marker mkr;
+    mkr.id=105;
+    mkr.lifetime = ros::Duration(5.0);
+    mkr.type=mkr.TEXT_VIEW_FACING;
+    mkr.color.r=1.0;
+    mkr.color.b=1.0;
+    mkr.color.g=1.0;
+    mkr.color.a=1.0;
+    mkr.pose.position.x = -1;
+    mkr.pose.position.y = 0;
+    mkr.pose.position.z = 1;
+    mkr.pose.orientation.x = 1;
+    mkr.pose.orientation.y = 0;
+    mkr.pose.orientation.z = 0;
+    mkr.pose.orientation.w = 0;
+    mkr.scale.z = 0.2;
+    mkr.header.frame_id = "world";
+    mkr.text = "robot exec:\n" + data[seg_num].description;
+    pub_txt->publish(mkr);
     pub_plan(nom_plan_pub,data[seg_num].plan,state);
     segment_thread = std::thread(&robot_sequence::segment_thread_fn,this,seg_num);
     return segment_active;
+}
+
+int robot_sequence::get_prior_human_step(int seg_num) {
+    if ((seg_num<0)||(seg_num>data.size())) return 1000;
+    return data[seg_num].get_prior_human_task();
+}
+
+void robot_sequence::set_gripper(bool open) {
+    std_msgs::Bool gripper_msg;
+    gripper_msg.data = open;
+    grip_pub.publish(gripper_msg);
 }
 
 robot_segment::robot_segment(ros::NodeHandle nh, int idx) {

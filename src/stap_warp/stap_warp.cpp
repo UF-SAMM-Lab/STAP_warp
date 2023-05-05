@@ -119,6 +119,9 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     trj_mtx.unlock();
     // std::cout<<"cur pose:"<<cur_pose.transpose()<<std::endl;
     if (path_time_pct>=1.0) return;
+    Eigen::VectorXd goal_pose(cur_pose.size());
+    for (int i=0;i<cur_pose.size();i++) goal_pose[i] = trj.points.back().positions[i];
+    if ((cur_pose-goal_pose).norm()<0.7) return;
     double path_time = path_time_pct*trj.points.back().time_from_start.toSec();
     // std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
     int start_p = 1;
@@ -471,7 +474,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
 
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-    ROS_INFO_STREAM("warp took " << time_span.count() << " seconds");
+    // ROS_INFO_STREAM("warp took " << time_span.count() << " seconds");
 }
 
 void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile) {
