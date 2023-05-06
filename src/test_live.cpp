@@ -14,7 +14,7 @@ ros::Time start_tm;
 double start_duration;
 std::mutex skel_mtx;
 std::mutex stat_mtx;
-std::vector<float> human_quat_pose = {0,0.9,-0.03,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.707,0.0,0.707,0.0,0,0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0};
+std::vector<float> human_quat_pose = {0,0.75,-0.03,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.707,0.0,0.707,0.0,0,0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0};
 std_msgs::Float32MultiArray human_stat;
 
 void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {

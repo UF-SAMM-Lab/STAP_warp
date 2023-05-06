@@ -73,8 +73,8 @@ test_sequence:
         after_robot_task: -1
         after_human_task: -1
         start_delay: 2.0
-        reach_target_left: [0.1,0.5,0.0]
-        reach_target_right: [-0.1,0.5,0.9]
+        reach_target_left: [0.1,0.35,0.0]
+        reach_target_right: [-0.1,0.35,0.9]
         end_delay: 0.0
         arm: "both"
         check_pos: true
@@ -83,8 +83,8 @@ test_sequence:
         after_robot_task: -1
         after_human_task: -1
         start_delay: 0.0
-        reach_target_left: [0.1,0.1,0.3]
-        reach_target_right: [-0.1,0.1,0.3]
+        reach_target_left: [0.1,0.05,0.3]
+        reach_target_right: [-0.1,0.05,0.3]
         end_delay: 0.0
         arm: "both"
         check_pos: true
@@ -93,8 +93,8 @@ test_sequence:
         after_robot_task: -1
         after_human_task: -1
         start_delay: 2.0
-        reach_target_left: [0.1,0.5,0.0]
-        reach_target_right: [-0.1,0.5,0.9]
+        reach_target_left: [0.1,0.35,0.0]
+        reach_target_right: [-0.1,0.35,0.9]
         end_delay: 0.0
         arm: "both"
         check_pos: true
@@ -103,8 +103,8 @@ test_sequence:
         after_robot_task: -1
         after_human_task: -1
         start_delay: 2.0
-        reach_target_left: [0.1,0.1,0.3]
-        reach_target_right: [-0.1,0.1,0.3]
+        reach_target_left: [0.1,0.05,0.3]
+        reach_target_right: [-0.1,0.05,0.3]
         end_delay: 0.0
         arm: "both"
         check_pos: true
