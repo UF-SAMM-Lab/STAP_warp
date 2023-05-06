@@ -55,6 +55,7 @@ class human {
         std::shared_ptr<ros::ServiceClient> predictor;
         std::shared_ptr<ros::Publisher> seq_pub;
         float prediction_dt = 0.1;
+        int show_human_rate = 50;
 };
 class humans {
     public:
@@ -96,6 +97,7 @@ class humans {
         ros::ServiceClient human_reset_srv;
         float prediction_dt = 0.1;
         std::shared_ptr<ros::Publisher> pub_txt;
+        ros::Publisher wrist_trace_pub;
 };
 class robot_segment {
     public:

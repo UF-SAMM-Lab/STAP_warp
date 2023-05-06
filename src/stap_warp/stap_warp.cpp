@@ -224,7 +224,11 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 //   nxt_pose = poses[p];
                 // }
                 // Eigen::Matrix6Xd jacobian = chain_->getJacobian(cur_pose);
-                ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
+                if (human_seq.empty()) {
+                  ssm->setPointCloud(Eigen::MatrixXd(3,0));
+                } else {
+                  ssm->setPointCloud(human_seq[std::max(std::min(int(round(h_time*10)),int(human_seq.size())-1),0)].second);
+                }
                 // std::cout<<"q:"<<cur_q.transpose()<<std::endl;
                 // std::cout<<"dq:"<<dq.transpose()<<std::endl;
                 std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_q,dq);

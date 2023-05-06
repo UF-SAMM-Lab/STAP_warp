@@ -161,6 +161,7 @@ class data_recorder {
   }
   std::mutex skel_pts_mtx;
   std::vector<Eigen::Vector3f> live_human_points;
+  double t = 0.0;
   protected:
   ros::NodeHandle nh_;
   int n_dof_=0;

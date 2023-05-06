@@ -335,12 +335,12 @@ void data_recorder::record_thread(const ros::TimerEvent& event) {
         logFile<<"pred r wrist x, y, z,";
         logFile<<"plan time,min sep dist, tip speed\n";  
     }
-    double t = (event.current_real-start_time).toSec();
+    t = (event.current_real-start_time).toSec();
     human_quats = skel->get_quats_at_time(t);
     std_msgs::Float32 time_msg;
     time_msg.data = t;
     time_pub.publish(time_msg);
-    std::cout<<t<<", dist:"<<min_distance<<std::endl;
+    // std::cout<<t<<", dist:"<<min_distance<<std::endl;
     logFile<<t<<","<<spd_scale<<",";
     for (int i=0;i<n_dof_;i++) {
         logFile<<joint_positions[i]<<",";

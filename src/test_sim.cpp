@@ -477,6 +477,7 @@ int main(int argc, char** argv) {
           } else {
             if (showing_human) {
               rec.stop();
+              ROS_INFO_STREAM("finished with time:"<<rec.t<<" seconds.");
               showing_human = false;
               test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
               ros::Duration(0.1).sleep();

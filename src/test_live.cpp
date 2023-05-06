@@ -13,8 +13,9 @@ std::string goal_id;
 ros::Time start_tm;
 double start_duration;
 std::mutex skel_mtx;
-std::vector<float> human_quat_pose = {-1.737439036369323730e-01,9.085529446601867676e-01,-3.478607162833213806e-02,9.981507693313929064e-01,-5.998364698210649493e-02,9.849049592449109214e-03,0.000000000000000000e+00,9.580149214898834309e-01,1.740551826395725366e-01,-2.278424973507739981e-01,0.000000000000000000e+00,7.123834513833746662e-01,1.841394957996581871e-01,6.772019375945099728e-01,-0.000000000000000000e+00,2.844575261446070646e-01,1.394740396576789054e-01,-9.484887495807520219e-01,0.000000000000000000e+00,7.097945123379674204e-01,4.777340680356021441e-01,5.176503747637605235e-01,-0.000000000000000000e+00,2.843504163844787769e-01,-3.630602545215000920e-01,8.873173571438557339e-01,0.000000000000000000e+00,7.148535069955277432e-01,2.736450296645902003e-01,-6.435082449169243768e-01,0.000000000000000000e+00};
-
+std::mutex stat_mtx;
+std::vector<float> human_quat_pose = {0,0.9,-0.03,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.707,0.0,0.707,0.0,0,0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0};
+std_msgs::Float32MultiArray human_stat;
 
 void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx);
@@ -49,6 +50,11 @@ void skel_quats_cb(const std_msgs::Float32MultiArray::ConstPtr& msg) {
     // for (int i=0;i<7;i++){
     //     live_human_quats.push_back(Eigen::Quaternionf(pose_elements[i*4+4],pose_elements[i*4+5],pose_elements[i*4+6],pose_elements[i*4+7]));
     // }
+}
+
+void human_done_cb(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+  std::lock_guard<std::mutex> l(stat_mtx);
+  human_stat = *msg;
 }
 
 int main(int argc, char** argv) {
@@ -102,7 +108,9 @@ int main(int argc, char** argv) {
     ros::Publisher model_all_pub = nh.advertise<std_msgs::Bool>( "/model_disp_all_req", 0,false);
     ros::Publisher centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
     ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
+    ros::Publisher pub_human_status = nh.advertise<visualization_msgs::Marker>("/human_status",1);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
+    ros::Subscriber sub_human_done = nh.subscribe<std_msgs::Float32MultiArray>("/human_task_status",1,human_done_cb);
     std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
     std::string plan_group = "manipulator";
     if (!nh.getParam("/plan_group",plan_group))
@@ -332,10 +340,15 @@ int main(int argc, char** argv) {
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
     int human_seq = 0;
-    nh.getParam("/tests/"+std::to_string(test_num)+"/human_sequennce_num", human_seq);
+    nh.getParam("/tests/"+std::to_string(test_num) + "/human_sequence_num", human_seq);
+    ROS_INFO_STREAM("loading human sequence:"<<human_seq);
     std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,human_seq);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
+    human_data->predicted_motion();
+    human_data->generate_full_sequence(0,0,0.0);
+    ROS_INFO_STREAM("human sequence:"<<human_data->full_joint_seq.size()<<" steps");
+    human_data->show_predictions(human_link_lengths,human_link_radii);
 
     for (int test_num=0;test_num<num_tests;test_num++) {
       std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
@@ -462,6 +475,7 @@ int main(int argc, char** argv) {
         } else {
           if (showing_human) {
             rec.stop();
+            ROS_INFO_STREAM("finished with time:"<<rec.t<<" seconds.");
             showing_human = false;
             test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
             ros::Duration(0.1).sleep();
@@ -585,11 +599,55 @@ int main(int argc, char** argv) {
         if (i==1) {
             ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
             move_group.asyncExecute(plans[i]);
+            int human_step=0;
             ros::Duration(0.1).sleep();
-            while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {
-              stap_warp.warp(model_->joint_seq,std::max((ros::Time::now()-p_start).toSec(),0.0),rec.joint_pos_vec,rec.get_current_joint_state());
+            visualization_msgs::Marker mkr;
+            mkr.id=105;
+            mkr.lifetime = ros::Duration(0.0);
+            mkr.type=mkr.TEXT_VIEW_FACING;
+            mkr.color.r=1.0;
+            mkr.color.b=1.0;
+            mkr.color.g=1.0;
+            mkr.color.a=1.0;
+            mkr.pose.position.x = -0.8;
+            mkr.pose.position.y = 0;
+            mkr.pose.position.z = 1;
+            mkr.pose.orientation.x = 1;
+            mkr.pose.orientation.y = 0;
+            mkr.pose.orientation.z = 0;
+            mkr.pose.orientation.w = 0;
+            mkr.scale.z = 0.2;
+            mkr.header.frame_id = "world";
+            while (((rec.joint_pos_vec-goal_vec).norm()>0.001)&&(ros::ok())) {
+              std::stringstream str;
+              if (human_step<human_data->get_num_steps()) {
+                if (human_data->is_step_done(human_step)) {
+                  ROS_INFO_STREAM("human step "<<human_step<<" is done");
+                  human_step++;
+                  human_data->reset_motion_done();
+                }
+                str<<"step:"<<human_step;
+                stat_mtx.lock();
+                if (human_stat.data.size()>6) {
+                  str<<", e:";
+                  str<<round(human_stat.data[6]*100)*0.01;
+                  str<<", spd:";
+                  str<<round(human_stat.data[4]*100)*0.01;
+                }
+                stat_mtx.unlock();
+                human_data->update_predictions(human_step,human_quat_pose,0,0.0);
+              } else {
+                str<<"Human Task Done!";
+                human_data->full_joint_seq.clear();
+              }
+              mkr.text = str.str();
+              pub_human_status.publish(mkr);
+              //std::max((ros::Time::now()-p_start).toSec(),0.0);
+              stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
               ros::Duration(0.1).sleep();
             }
+            mkr.text = "Robot HRI segment is done!";
+            pub_human_status.publish(mkr);
           } else {
             move_group.execute(plans[i]);
           }

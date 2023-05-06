@@ -19,6 +19,7 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
     human_model_pub = nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false);
     human_done_srv = nh.serviceClient<stap_warp::human_motion_done>("human_motion_done");
     human_reset_srv = nh.serviceClient<stap_warp::human_motion_reset>("human_human_motion_resetmotion_done");
+    wrist_trace_pub = nh.advertise<visualization_msgs::Marker>("prediction_wrist_traces", 0,false);
 }
 
 float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq) {
@@ -88,6 +89,25 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     full_joint_seq_f.clear();
     full_quat_seq.clear();
     bool some_points = false;
+    visualization_msgs::Marker mkr;
+    mkr.id=106;
+    mkr.lifetime = ros::Duration(0.0);
+    mkr.type=mkr.SPHERE_LIST;
+    mkr.color.r=1.0;
+    mkr.color.b=0.0;
+    mkr.color.g=1.0;
+    mkr.color.a=1.0;
+    mkr.pose.position.x = 0;
+    mkr.pose.position.y = 0;
+    mkr.pose.position.z = 0;
+    mkr.pose.orientation.x = 0;
+    mkr.pose.orientation.y = 0;
+    mkr.pose.orientation.z = 0;
+    mkr.pose.orientation.w = 1;
+    mkr.scale.x = 0.01;
+    mkr.scale.y = 0.01;
+    mkr.scale.z = 0.01;
+    mkr.header.frame_id = "world";
     for (s=start_seq;s<data.size();s++) {
         if (data[s].get_prior_robot_task()>=robot_step) break;
         if (data[s].get_start_delay()>0.0)  {
@@ -113,6 +133,18 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
             if (seq_time>=0.0) {
                 full_joint_seq.emplace_back(elapsed_tm,std::get<3>(data[s].get_seq(i)));
                 Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s].get_seq(i));
+                // std::cout<<"test:"<<tmp_jnts_mat.col(5).transpose()<<":"<<tmp_jnts_mat.col(8).transpose()<<std::endl;
+                geometry_msgs::Point pt;
+                pt.x = tmp_jnts_mat(0,5);
+                pt.y = tmp_jnts_mat(1,5);
+                pt.z = tmp_jnts_mat(2,5);
+                // std::cout<<pt<<std::endl;
+                mkr.points.push_back(pt);
+                pt.x = tmp_jnts_mat(0,8);
+                pt.y = tmp_jnts_mat(1,8);
+                pt.z = tmp_jnts_mat(2,8);
+                mkr.points.push_back(pt);
+                // std::cout<<pt<<std::endl;
                 std::vector<Eigen::Vector3f> tmp_jnts;
                 for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
                 full_joint_seq_f.emplace_back(elapsed_tm,tmp_jnts);
@@ -128,6 +160,16 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     if ((!some_points) && (s>0)) {
         full_joint_seq.emplace_back(0.0,std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1)));
         Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+        // std::cout<<"test2:"<<tmp_jnts_mat.col(5).transpose()<<":"<<tmp_jnts_mat.col(8).transpose()<<std::endl;
+        geometry_msgs::Point pt;
+        pt.x = tmp_jnts_mat(0,5);
+        pt.y = tmp_jnts_mat(1,5);
+        pt.z = tmp_jnts_mat(2,5);
+        mkr.points.push_back(pt);
+        pt.x = tmp_jnts_mat(0,8);
+        pt.y = tmp_jnts_mat(1,8);
+        pt.z = tmp_jnts_mat(2,8);
+        mkr.points.push_back(pt);
         std::vector<Eigen::Vector3f> tmp_jnts;
         for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
         full_joint_seq_f.emplace_back(0.0,tmp_jnts);
@@ -137,6 +179,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
         full_quat_seq.emplace_back(0.0,tmp_quats);
         ROS_INFO_STREAM("no points:"<<s-1);
     }
+    wrist_trace_pub.publish(mkr);
 }
 
 void humans::predicted_motion(void) {
@@ -160,10 +203,10 @@ void humans::show_predictions(std::vector<float> link_len,std::vector<float> lin
         mkr.pose.position.x = -1;
         mkr.pose.position.y = 0;
         mkr.pose.position.z = 1;
-        mkr.pose.orientation.x = 1;
+        mkr.pose.orientation.x = 0;
         mkr.pose.orientation.y = 0;
         mkr.pose.orientation.z = 0;
-        mkr.pose.orientation.w = 0;
+        mkr.pose.orientation.w = 1;
         mkr.scale.z = 0.3;
         mkr.header.frame_id = "world";
         mkr.text = data[i].description;
@@ -251,7 +294,8 @@ void humans::show_sequence(void) {
 
 human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num):predictor(predictor),seq_pub(seq_pub),prediction_dt(prediction_dt) {
     id = idx;
-    std::cout<<"human "<<idx<<":";
+    std::cout<<"test_num:"<<test_num<<", human "<<idx<<":";
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/show_human_rate",show_human_rate);
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/description", description);
     std::cout<<description<<",";
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/after_robot_task", prior_robot_task);
@@ -264,12 +308,16 @@ human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> pr
         std::cout<<"what now?"<<std::endl;
         nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target_left", reach_target_left);
         nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target_right", reach_target_right);
+        std::cout<<"left reach tgt:";
+        for (int q=0;q<3;q++) std::cout<<reach_target_left[q]<<",";
+        std::cout<<"right reach tgt:";
+        for (int q=0;q<3;q++) std::cout<<reach_target_right[q]<<",";
     }
     else {
         nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target", reach_target);
+        std::cout<<" reach tgt:";
+        for (int q=0;q<3;q++) std::cout<<reach_target[q]<<",";
     }
-    std::cout<<" reach tgt:";
-    for (int q=0;q<3;q++) std::cout<<reach_target[q]<<",";
     std::cout<<" arm:"<<arm_string<<std::endl;
     if (arm_string=="both") {
         both_arms = true;
@@ -334,7 +382,6 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             // std::cout<<srv.response.pose_sequence<<std::endl;
             int i = 0;
             while (true) {
-                std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
                 std::vector<float> quat_vec;
                 for (int j=1;j<n_cols;j++) {
                     quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
@@ -343,12 +390,9 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 i+=n_cols;
                 if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             }
-            // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
-            end_pose = std::get<2>(sequence.back());
         }
         srv.request.reach_target = reach_target_right;
         srv.request.active_hand = false;
-        srv.request.dt = prediction_dt;
         std::vector<std::pair<float,std::vector<float>>> right_quats;
         if (predictor->call(srv)) {
             int n_cols = srv.response.pose_sequence.layout.dim[0].size;
@@ -356,7 +400,6 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             // std::cout<<srv.response.pose_sequence<<std::endl;
             int i = 0;
             while (true) {
-                std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
                 std::vector<float> quat_vec;
                 for (int j=1;j<n_cols;j++) {
                     quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
@@ -365,18 +408,18 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 i+=n_cols;
                 if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             }
-            // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
         }
         sequence.clear();
+        std::vector<float> left_arm_quats;
+        std::vector<float> right_arm_quats;
         for (int i=0;i<std::max(left_quats.size(),right_quats.size());i++) {
+            // std::cout<<i<<","<<std::max(left_quats.size(),right_quats.size())<<std::endl;
             bool use_left = (i<left_quats.size());
             bool use_right = (i<right_quats.size());
             bool use_both = use_left & use_right;
             Eigen::Vector3f pelvis;
             float time = 0.0;
             std::vector<float> quat;
-            std::vector<float> left_arm_quats;
-            std::vector<float> right_arm_quats;
             if (use_both) {
                 pelvis = 0.5*(Eigen::Vector3f(left_quats[i].second[0],left_quats[i].second[1],left_quats[i].second[2])+Eigen::Vector3f(right_quats[i].second[0],right_quats[i].second[1],right_quats[i].second[2]));
                 time = left_quats[i].first;
@@ -400,10 +443,10 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=0;j<4;j++) quat.push_back(tmp_quat[j]);
             }
             if (use_left) {
-                left_arm_quats = std::vector<float>(left_quats[i].second.begin()+15,left_quats[i].second.begin()+8+15);
+                left_arm_quats = std::vector<float>(left_quats[i].second.begin()+23,left_quats[i].second.begin()+8+23);
             }
             if (use_right) {
-                right_arm_quats = std::vector<float>(right_quats[i].second.begin()+23,right_quats[i].second.begin()+8+23);
+                right_arm_quats = std::vector<float>(right_quats[i].second.begin()+15,right_quats[i].second.begin()+8+15);
             }
                 
             for (int j=0;j<8;j++) quat.push_back(left_arm_quats[j]);
@@ -417,6 +460,8 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
             for (int j=0;j<joint_mat.cols();j++) {
                 for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.col(j)[k]);
             }
+            // for (int j=0;j<quat.size();j++) std::cout<<quat[j]<<",";
+            // std::cout<<std::endl;
             sequence.emplace_back(time,joint_vec,quat,joint_mat);
         }
         end_pose = std::get<2>(sequence.back());
@@ -523,7 +568,12 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
     start_color[2] = 0;
     Eigen::Vector3f color_diff(1,0,0);
     color_diff-=start_color;
-    ros::Rate r(50);
+    ros::Rate r(show_human_rate);
+    float tm = 0.0;
+    while(tm<start_delay) {
+        tm+=prediction_dt;
+        r.sleep();
+    }
     for (int i=0;i<sequence.size();i++) {
         std::vector<Eigen::Vector3f> link_centroids;
         std::vector<Eigen::Quaternionf> link_quats;
@@ -561,6 +611,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
 }
 
 std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> human::get_seq(int i) {
+    assert(!sequence.empty());
     return sequence[i];
 }
 int human::get_seq_size(void) {
@@ -629,10 +680,10 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     mkr.pose.position.x = -1;
     mkr.pose.position.y = 0;
     mkr.pose.position.z = 1;
-    mkr.pose.orientation.x = 1;
+    mkr.pose.orientation.x = 0;
     mkr.pose.orientation.y = 0;
     mkr.pose.orientation.z = 0;
-    mkr.pose.orientation.w = 0;
+    mkr.pose.orientation.w = 1;
     mkr.scale.z = 0.3;
     mkr.header.frame_id = "world";
     mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
@@ -722,10 +773,10 @@ bool robot_sequence::do_segment(int seg_num) {
     mkr.pose.position.x = -1;
     mkr.pose.position.y = 0;
     mkr.pose.position.z = 1;
-    mkr.pose.orientation.x = 1;
+    mkr.pose.orientation.x = 0;
     mkr.pose.orientation.y = 0;
     mkr.pose.orientation.z = 0;
-    mkr.pose.orientation.w = 0;
+    mkr.pose.orientation.w = 1;
     mkr.scale.z = 0.2;
     mkr.header.frame_id = "world";
     mkr.text = "robot exec:\n" + data[seg_num].description;
