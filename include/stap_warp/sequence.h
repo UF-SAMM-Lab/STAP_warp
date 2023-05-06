@@ -21,7 +21,7 @@
 namespace stap_test {
 class human {
     public:
-        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt);
+        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num);
         void get_predicted_motion(std::vector<float> start_pose);
         void show_human(std::vector<float> link_len,std::vector<float> link_r);
         std::vector<float> get_last_pose(void) {return end_pose;}
@@ -32,6 +32,7 @@ class human {
         std::vector<float> get_tgt(void) {return reach_target;}
         bool arm_right = true;
         bool arm_left = false;
+        bool both_arms = false;
         void set_dimensions(std::vector<float> link_len,std::vector<float> link_r) {
             link_lengths_ = link_len;
             radii = link_r;
@@ -41,6 +42,8 @@ class human {
         std::vector<float> radii;
         std::string description = "";
         bool check_pos = false;
+        std::vector<float> reach_target_left;
+        std::vector<float> reach_target_right;
     private:
         int id = 0;
         int prior_robot_task = -1;
@@ -55,7 +58,7 @@ class human {
 };
 class humans {
     public:
-        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt);
+        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num);
         void predicted_motion(void);
         void show_predictions(std::vector<float> link_len,std::vector<float> link_r);
         float pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq);

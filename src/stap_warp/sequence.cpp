@@ -2,19 +2,19 @@
 
 namespace stap_test {
 
-humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub),pub_txt(pub_txt) {
-    nh.getParam("/test_sequence/human_sequence/start_pose", start_pose);
+humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub),pub_txt(pub_txt) {
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/start_pose", start_pose);
     if (start_pose.size()==0) {
         start_pose = cur_pose;
     }
-    if (!nh.getParam("/test_sequence/human_sequence/length", num_steps))
+    if (!nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/length", num_steps))
     {
-      ROS_ERROR("/test_sequence/human_sequence/length is not defined in sequence.yaml");
+      ROS_ERROR_STREAM("/test_sequence/"<<test_num<<"/human_sequence/length is not defined in sequence.yaml");
     }
     data.clear();
     data.reserve(num_steps);
     for (int i=0; i<num_steps;i++) {
-        data.emplace_back(nh,i,predictor,seq_pub,prediction_dt);
+        data.emplace_back(nh,i,predictor,seq_pub,prediction_dt,test_num);
     }
     human_model_pub = nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false);
     human_done_srv = nh.serviceClient<stap_warp::human_motion_done>("human_motion_done");
@@ -249,62 +249,179 @@ void humans::show_sequence(void) {
     }
 }
 
-human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt):predictor(predictor),seq_pub(seq_pub),prediction_dt(prediction_dt) {
+human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num):predictor(predictor),seq_pub(seq_pub),prediction_dt(prediction_dt) {
     id = idx;
     std::cout<<"human "<<idx<<":";
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/description", description);
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/description", description);
     std::cout<<description<<",";
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/after_robot_task", prior_robot_task);
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/after_robot_task", prior_robot_task);
     std::cout<<" prior robot task:"<<prior_robot_task<<",";
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/start_delay", start_delay);
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/start_delay", start_delay);
     std::cout<<" start dly:"<<start_delay<<",";
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/reach_target", reach_target);
+    std::string arm_string;
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/arm", arm_string);
+    if (arm_string=="both") {
+        std::cout<<"what now?"<<std::endl;
+        nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target_left", reach_target_left);
+        nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target_right", reach_target_right);
+    }
+    else {
+        nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/reach_target", reach_target);
+    }
     std::cout<<" reach tgt:";
     for (int q=0;q<3;q++) std::cout<<reach_target[q]<<",";
-    std::string arm_string;
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/arm", arm_string);
     std::cout<<" arm:"<<arm_string<<std::endl;
-    if (arm_string=="left") arm_left = true;
-    arm_right = !arm_left;
+    if (arm_string=="both") {
+        both_arms = true;
+        arm_left = false;
+        arm_right = false;
+    }
+    else {
+        both_arms = false;
+        if (arm_string=="left") arm_left = true;
+        arm_right = !arm_left;
+    }
     nh.getParam("/human_link_radii", radii);
-    nh.getParam("/test_sequence/human_sequence/"+std::to_string(idx)+"/check_pos", check_pos);
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/check_pos", check_pos);
 
 }
 
 void human::get_predicted_motion(std::vector<float> start_pose) {
-    stap_warp::human_prediction srv;
-    srv.request.start_pose = start_pose;
-    srv.request.reach_target = reach_target;
-    srv.request.active_hand = !arm_right;
-    srv.request.dt = prediction_dt;
-    sequence.clear();
-    if (predictor->call(srv)) {
-        int n_cols = srv.response.pose_sequence.layout.dim[0].size;
-        // ROS_INFO_STREAM(description<<" ncols:"<<n_cols);
-        // std::cout<<srv.response.pose_sequence<<std::endl;
-        int i = 0;
-        while (true) {
-            std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
-            std::vector<float> quat_vec;
-            std::vector<float> joint_vec;
-            for (int j=1;j<n_cols;j++) {
-                quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
+    if (!both_arms) {
+        stap_warp::human_prediction srv;
+        srv.request.start_pose = start_pose;
+        srv.request.reach_target = reach_target;
+        srv.request.active_hand = !arm_right;
+        srv.request.dt = prediction_dt;
+        sequence.clear();
+        if (predictor->call(srv)) {
+            int n_cols = srv.response.pose_sequence.layout.dim[0].size;
+            // ROS_INFO_STREAM(description<<" ncols:"<<n_cols);
+            // std::cout<<srv.response.pose_sequence<<std::endl;
+            int i = 0;
+            while (true) {
+                std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
+                std::vector<float> quat_vec;
+                std::vector<float> joint_vec;
+                for (int j=1;j<n_cols;j++) {
+                    quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
+                }
+                Eigen::Matrix3Xd joint_mat = Eigen::MatrixXd::Zero(3,15);
+                std::vector<Eigen::Vector3f> link_centroids;
+                std::vector<Eigen::Quaternionf> link_quats;
+                forward_kinematics(quat_vec,link_centroids,link_quats,joint_mat);
+                // std::cout<<joint_mat<<std::endl;
+                for (int j=0;j<joint_mat.cols();j++) {
+                    for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.col(j)[k]);
+                }
+                sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec,joint_mat);
+                i+=n_cols;
+                if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             }
+            // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
+            end_pose = std::get<2>(sequence.back());
+        }
+    } else {
+        stap_warp::human_prediction srv;
+        srv.request.start_pose = start_pose;
+        srv.request.reach_target = reach_target_left;
+        srv.request.active_hand = true;
+        srv.request.dt = prediction_dt;
+        std::vector<std::pair<float,std::vector<float>>> left_quats;
+        if (predictor->call(srv)) {
+            int n_cols = srv.response.pose_sequence.layout.dim[0].size;
+            // ROS_INFO_STREAM(description<<" ncols:"<<n_cols);
+            // std::cout<<srv.response.pose_sequence<<std::endl;
+            int i = 0;
+            while (true) {
+                std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
+                std::vector<float> quat_vec;
+                for (int j=1;j<n_cols;j++) {
+                    quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
+                }
+                left_quats.emplace_back(srv.response.pose_sequence.data[i],quat_vec);
+                i+=n_cols;
+                if (i>srv.response.pose_sequence.data.size()-n_cols) break;
+            }
+            // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
+            end_pose = std::get<2>(sequence.back());
+        }
+        srv.request.reach_target = reach_target_right;
+        srv.request.active_hand = false;
+        srv.request.dt = prediction_dt;
+        std::vector<std::pair<float,std::vector<float>>> right_quats;
+        if (predictor->call(srv)) {
+            int n_cols = srv.response.pose_sequence.layout.dim[0].size;
+            // ROS_INFO_STREAM(description<<" ncols:"<<n_cols);
+            // std::cout<<srv.response.pose_sequence<<std::endl;
+            int i = 0;
+            while (true) {
+                std::tuple<float,std::vector<float>,std::vector<float>> seq_step;
+                std::vector<float> quat_vec;
+                for (int j=1;j<n_cols;j++) {
+                    quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
+                }
+                right_quats.emplace_back(srv.response.pose_sequence.data[i],quat_vec);
+                i+=n_cols;
+                if (i>srv.response.pose_sequence.data.size()-n_cols) break;
+            }
+            // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
+        }
+        sequence.clear();
+        for (int i=0;i<std::max(left_quats.size(),right_quats.size());i++) {
+            bool use_left = (i<left_quats.size());
+            bool use_right = (i<right_quats.size());
+            bool use_both = use_left & use_right;
+            Eigen::Vector3f pelvis;
+            float time = 0.0;
+            std::vector<float> quat;
+            std::vector<float> left_arm_quats;
+            std::vector<float> right_arm_quats;
+            if (use_both) {
+                pelvis = 0.5*(Eigen::Vector3f(left_quats[i].second[0],left_quats[i].second[1],left_quats[i].second[2])+Eigen::Vector3f(right_quats[i].second[0],right_quats[i].second[1],right_quats[i].second[2]));
+                time = left_quats[i].first;
+            } else if (use_left) {
+                pelvis =Eigen::Vector3f(left_quats[i].second[0],left_quats[i].second[1],left_quats[i].second[2]);
+                time = left_quats[i].first;
+            } else if (use_right) {
+                pelvis = Eigen::Vector3f(right_quats[i].second[0],right_quats[i].second[1],right_quats[i].second[2]);
+                time = right_quats[i].first;
+            }
+            for (int j=0;j<3;j++) quat.push_back(pelvis[j]);
+            for (int q=0;q<3;q++) {
+                Eigen::Vector4f tmp_quat;
+                if (use_both) {
+                    tmp_quat = 0.5*(Eigen::Vector4f(left_quats[i].second[q*4+3],left_quats[i].second[q*4+4],left_quats[i].second[q*4+5],left_quats[i].second[q*4+6])+Eigen::Vector4f(right_quats[i].second[q*4+3],right_quats[i].second[q*4+4],right_quats[i].second[q*4+5],right_quats[i].second[q*4+6]));
+                } else if (use_left) {
+                    tmp_quat = Eigen::Vector4f(left_quats[i].second[q*4+3],left_quats[i].second[q*4+4],left_quats[i].second[q*4+5],left_quats[i].second[q*4+6]);
+                } else if (use_right) {
+                    tmp_quat = Eigen::Vector4f(right_quats[i].second[q*4+3],right_quats[i].second[q*4+4],right_quats[i].second[q*4+5],right_quats[i].second[q*4+6]);
+                }
+                for (int j=0;j<4;j++) quat.push_back(tmp_quat[j]);
+            }
+            if (use_left) {
+                left_arm_quats = std::vector<float>(left_quats[i].second.begin()+15,left_quats[i].second.begin()+8+15);
+            }
+            if (use_right) {
+                right_arm_quats = std::vector<float>(right_quats[i].second.begin()+23,right_quats[i].second.begin()+8+23);
+            }
+                
+            for (int j=0;j<8;j++) quat.push_back(left_arm_quats[j]);
+            for (int j=0;j<8;j++) quat.push_back(right_arm_quats[j]);
+            std::vector<float> joint_vec;
             Eigen::Matrix3Xd joint_mat = Eigen::MatrixXd::Zero(3,15);
             std::vector<Eigen::Vector3f> link_centroids;
             std::vector<Eigen::Quaternionf> link_quats;
-            forward_kinematics(quat_vec,link_centroids,link_quats,joint_mat);
+            forward_kinematics(quat,link_centroids,link_quats,joint_mat);
             // std::cout<<joint_mat<<std::endl;
             for (int j=0;j<joint_mat.cols();j++) {
                 for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.col(j)[k]);
             }
-            sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec,joint_mat);
-            i+=n_cols;
-            if (i>srv.response.pose_sequence.data.size()-n_cols) break;
+            sequence.emplace_back(time,joint_vec,quat,joint_mat);
         }
-        // ROS_INFO_STREAM("human "<<id<<" received sequence with "<<sequence.size()<<" steps");
         end_pose = std::get<2>(sequence.back());
     }
+                
 }
     
 void human::forward_kinematics(std::vector<float> pose_elements, std::vector<Eigen::Vector3f>& link_centroids, std::vector<Eigen::Quaternionf>& link_quats, Eigen::Matrix3Xd& human_points) {
@@ -451,21 +568,21 @@ int human::get_seq_size(void) {
 }
 
 robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_,std::shared_ptr<ros::Publisher> pub_txt):nh(nh),state(state),model(model),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_),pub_txt(pub_txt) {
-    if (!nh.getParam("/test_sequence/robot_sequence/length", num_steps))
+    if (!nh.getParam("/test_sequence/1/robot_sequence/length", num_steps))
     {
-      ROS_ERROR("/test_sequence/robot_sequence/length is not defined in sequence.yaml");
+      ROS_ERROR("/test_sequence/1/robot_sequence/length is not defined in sequence.yaml");
     }
     for (int i=0; i<num_steps;i++) {
         data.emplace_back(nh,i);
     }    
     int num_robot_poses = 0;
-    if (!nh.getParam("/test_sequence/robot_poses/length", num_robot_poses))
+    if (!nh.getParam("/test_sequence/1/robot_poses/length", num_robot_poses))
     {
-      ROS_ERROR("/test_sequence/robot_poses/length is not defined in sequence.yaml");
+      ROS_ERROR("/test_sequence/1/robot_poses/length is not defined in sequence.yaml");
     }
     std::vector<double> pose(6);
     for (int i=0; i<num_robot_poses;i++) {
-        nh.getParam("/test_sequence/robot_poses/"+std::to_string(i), pose);
+        nh.getParam("/test_sequence/1/robot_poses/"+std::to_string(i), pose);
         goals_angles.push_back(pose);
         std::cout<<"goal "<<i<<":";
         for (int q=0;q<6;q++) std::cout<<goals_angles.back()[q]<<",";
@@ -476,7 +593,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     move_group.setMaxVelocityScalingFactor(1.0);            //time parametrization
     move_group.setMaxAccelerationScalingFactor(1.0);    //time parametrization
     double planning_time = 5.0;
-    nh.getParam("/test_sequence/planning_time", planning_time);
+    nh.getParam("/test_sequence/1/planning_time", planning_time);
     move_group.setPlanningTime(planning_time);
     planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
     last_perf_received = ros::Time::now();
@@ -632,16 +749,16 @@ void robot_sequence::set_gripper(bool open) {
 robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
     id = idx;
     std::cout<<"robot seg "<<idx<<":";
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/description", description);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/description", description);
     std::cout<<description<<",";
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/goal", goal_id);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/goal", goal_id);
     std::cout<<" goal id:"<<goal_id<<",";
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/type", type);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/type", type);
     std::cout<<" type:"<<type<<",";
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
     std::cout<<" prior_human_task:"<<prior_human_task<<std::endl;
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
-    nh.getParam("/test_sequence/robot_sequence/"+std::to_string(idx)+"/planner", planner);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
+    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/planner", planner);
 }
 
 

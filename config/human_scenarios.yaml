@@ -1,0 +1,124 @@
+test_sequence:
+  "0":
+    human_sequence:
+      description: "get engine block at left"
+      "0":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [0.4,0.0,0.3]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+      "1":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [0.05,0.4,0.1]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+      "2":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [0.3,0.15,0.05]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+  "1":
+    human_sequence:
+      description: "bring piston to engine and then put back"
+      "0":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+      "1":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [-0.05,0.4,0.2]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+      "2":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+  "2":
+    human_sequence:
+      description: "gator chomp"
+      "0":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.0,0.1,0.3]
+        reach_target_right: [0.0,0.1,0.3]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "1":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.0,0.3,0.0]
+        reach_target_right: [0.0,0.3,0.9]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "2":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.0,0.1,0.3]
+        reach_target_right: [0.0,0.1,0.3]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "3":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.0,0.1,0.3]
+        reach_target_right: [0.0,0.1,0.3]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "4":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.0,0.3,0.0]
+        reach_target_right: [0.0,0.3,0.9]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "5":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.2,0.9,-0.1]
+        reach_target_right: [-0.2,0.9,-0.1]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true

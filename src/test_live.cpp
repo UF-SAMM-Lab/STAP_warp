@@ -4,6 +4,7 @@
 #include <moveit_msgs/MoveGroupAction.h>
 #include <actionlib_msgs/GoalID.h>
 #include <control_msgs/FollowJointTrajectoryActionGoal.h>
+#include <stap_warp/sequence.h>
 
 std::vector<Eigen::VectorXf> pt_cloud;
 std::mutex mtx;
@@ -11,6 +12,9 @@ std::mutex goal_mtx;
 std::string goal_id;
 ros::Time start_tm;
 double start_duration;
+std::mutex skel_mtx;
+std::vector<float> human_quat_pose = {-1.737439036369323730e-01,9.085529446601867676e-01,-3.478607162833213806e-02,9.981507693313929064e-01,-5.998364698210649493e-02,9.849049592449109214e-03,0.000000000000000000e+00,9.580149214898834309e-01,1.740551826395725366e-01,-2.278424973507739981e-01,0.000000000000000000e+00,7.123834513833746662e-01,1.841394957996581871e-01,6.772019375945099728e-01,-0.000000000000000000e+00,2.844575261446070646e-01,1.394740396576789054e-01,-9.484887495807520219e-01,0.000000000000000000e+00,7.097945123379674204e-01,4.777340680356021441e-01,5.176503747637605235e-01,-0.000000000000000000e+00,2.843504163844787769e-01,-3.630602545215000920e-01,8.873173571438557339e-01,0.000000000000000000e+00,7.148535069955277432e-01,2.736450296645902003e-01,-6.435082449169243768e-01,0.000000000000000000e+00};
+
 
 void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx);
@@ -35,6 +39,16 @@ void start_timer(const ros::TimerEvent& event) {
   std::cout<<"*** "<<stream.str()<<" ***"<<std::endl;
   std::cout<<"***********\n";
   std::cout<<std::endl;
+}
+
+void skel_quats_cb(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+    if (msg->data.size()<2) return;
+    std::lock_guard<std::mutex> lck(skel_mtx);
+    human_quat_pose = std::vector<float>(msg->data.begin()+1,msg->data.end());
+    // live_human_quats.clear();
+    // for (int i=0;i<7;i++){
+    //     live_human_quats.push_back(Eigen::Quaternionf(pose_elements[i*4+4],pose_elements[i*4+5],pose_elements[i*4+6],pose_elements[i*4+7]));
+    // }
 }
 
 int main(int argc, char** argv) {
@@ -88,6 +102,8 @@ int main(int argc, char** argv) {
     ros::Publisher model_all_pub = nh.advertise<std_msgs::Bool>( "/model_disp_all_req", 0,false);
     ros::Publisher centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
     ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
+    ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
+    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
     std::string plan_group = "manipulator";
     if (!nh.getParam("/plan_group",plan_group))
     {
@@ -197,8 +213,8 @@ int main(int argc, char** argv) {
     }
     ROS_INFO_STREAM(transform_to_world.matrix());
 
-    std::vector<double> human_link_lengths;// = {0.569,0.194,0.328,0.285,0.357,0.285,0.45}; 
-    std::vector<double> human_link_radii;// = {0.12,0.05,0.1,0.04,0.03,0.04,0.03}; 
+    std::vector<float> human_link_lengths;// = {0.569,0.194,0.328,0.285,0.357,0.285,0.45}; 
+    std::vector<float> human_link_radii;// = {0.12,0.05,0.1,0.04,0.03,0.04,0.03}; 
     double min_dist = 0.0;
     if (!nh.getParam("/human_link_lengths", human_link_lengths)) ROS_ERROR("couldn't read human dimensions");
     if (!nh.getParam("/human_link_radii", human_link_radii)) ROS_ERROR("couldn't read human radii");
@@ -304,6 +320,23 @@ int main(int argc, char** argv) {
     move_group.setMaxVelocityScalingFactor(1.0);
     move_group.setMaxAccelerationScalingFactor(1.0);
     stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
+
+    std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
+    while (!predictor->exists()) {
+      ROS_INFO("waiting for predict_human service");
+      ros::Duration(0.1).sleep();
+    }
+    //setup the human predictors
+    std::shared_ptr<ros::Publisher> human_pub = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::MarkerArray>("predicted_human", 0,false));
+    // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
+    skel_mtx.lock();
+    std::cout<<human_quat_pose.size()<<std::endl;
+    int human_seq = 0;
+    nh.getParam("/tests/"+std::to_string(test_num)+"/human_sequennce_num", human_seq);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,human_seq);
+    skel_mtx.unlock();
+    human_data->set_dimensions(human_link_lengths,human_link_radii);
+
     for (int test_num=0;test_num<num_tests;test_num++) {
       std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
       test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
@@ -396,6 +429,7 @@ int main(int argc, char** argv) {
       ros::Duration(1.0).sleep();
       bool showing_human = false;
       rec.stop();
+
       while (!rec.ready()) {
         ROS_INFO_STREAM("/poses not publishing yet");
         ros::Duration(1.0).sleep();

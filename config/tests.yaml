@@ -9,6 +9,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "2":
@@ -21,6 +22,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "3":
@@ -33,6 +35,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: true
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "4":
@@ -45,6 +48,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: false
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "5":
@@ -59,6 +63,7 @@ tests:
     planning_time: 120
     publish_occupancy_centoroids: true
     get_plan_time_from_perf: true
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "6":
@@ -71,6 +76,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 2
 
   "7":
     planning_pipeline: ompl
@@ -82,6 +88,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 2
 
   "8":
     planning_pipeline: dirrt
@@ -93,6 +100,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: true
+    human_sequennce_num: 2
 
   "9":
     planning_pipeline: ompl
@@ -104,6 +112,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: false
+    human_sequennce_num: 2
 
   "10":
     planning_pipeline: dirrt
@@ -117,6 +126,7 @@ tests:
     planning_time: 120
     publish_occupancy_centoroids: true
     get_plan_time_from_perf: true
+    human_sequennce_num: 2
 
   "11":
     planning_pipeline: irrt_avoid
@@ -128,6 +138,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 1
 
   "12":
     planning_pipeline: ompl
@@ -139,6 +150,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 1
 
   "13":
     planning_pipeline: dirrt
@@ -150,6 +162,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: true
+    human_sequennce_num: 1
 
   "14":
     planning_pipeline: ompl
@@ -161,6 +174,7 @@ tests:
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
     get_plan_time_from_perf: false
+    human_sequennce_num: 1
 
   "15":
     planning_pipeline: dirrt
@@ -174,6 +188,7 @@ tests:
     publish_occupancy_centoroids: true
     planning_time: 120
     get_plan_time_from_perf: true
+    human_sequennce_num: 1
 
   "16":
     planning_pipeline: irrt_avoid
@@ -185,6 +200,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "17":
@@ -197,6 +213,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 2
 
   "18":
     planning_pipeline: irrt_avoid
@@ -208,6 +225,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: true
+    human_sequennce_num: 1
 
   "19":
     planning_pipeline: stomp
@@ -219,6 +237,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 0
     # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
 
   "20":
@@ -231,6 +250,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 2
 
   "21":
     planning_pipeline: stomp
@@ -242,5 +262,6 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     get_plan_time_from_perf: false
+    human_sequennce_num: 1
 
 

@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
-    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,1);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
 
