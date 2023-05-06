@@ -188,20 +188,22 @@ int main(int argc, char** argv) {
     std::vector<double> last_waypoint = move_group.getCurrentJointValues();
     //plan robot segment nominal paths based on nominal predictions
     for (int i=0;i<robot_data.num_segments();i++) {
-      while ((human_data->human_prior_robot_task(next_h)<i)&&(next_h<human_data->get_num_steps())) {
-        next_h++;
-        ROS_INFO_STREAM("next h:"<<next_h);
-      }
+
+      ROS_INFO_STREAM("next h:"<<next_h);
       if (next_h<human_data->get_num_steps()) {
-        if (i>=human_data->human_prior_robot_task(next_h)) {
+        if (i>human_data->human_prior_robot_task(next_h)) {
+          ROS_INFO_STREAM("setting h to "<<next_h<<","<<i<<","<<human_data->human_prior_robot_task(next_h));
           h=next_h;
           segment_time = 0.0;
         }
+      }      
+      while ((human_data->human_prior_robot_task(next_h)<i)&&(next_h<human_data->get_num_steps())) {
+        next_h++;
       }
       last_human_time = human_data->pub_model(h,i,-segment_time);
       human_data->show_sequence();
-      // std::cout<<"see the motion"<<std::endl;
-      // std::cin.ignore();
+      std::cout<<"see the motion"<<std::endl;
+      std::cin.ignore();
       ros::Duration(0.5).sleep();
       double planned_time = robot_data.plan_robot_segment(i,last_waypoint);
       segment_time += planned_time;

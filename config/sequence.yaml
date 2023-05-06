@@ -1,12 +1,12 @@
 test_sequence:
-  planning_time: 8.0
+  planning_time: 15.0
   robot_poses:
     length: 9
     "0": [0,0.733,1.098,0,1.310,-0.785]
     "1": [2.925,1.198,0.332,0,1.611,0.569]
     "2": [2.924,1.304,0.476,0,1.362,0.568]
-    "3": [1.649,1.060,0.568,0,1.512,-0.708]
-    "4": [1.649,1.203,0.684,0,1.254,-0.707]
+    "3": [1.470,0.504,1.437,0,1.199,-0.887]
+    "4": [1.470,0.743,1.504,0,0.893,-0.887]
     "5": [0.786,0.867,0.886,0,1.387,-0.776]
     "6": [0,0,0,0,0,0]
     "7": [3.098,1.080,0.535,0,1.527,0.742]
@@ -185,7 +185,7 @@ test_sequence:
       after_robot_task: 0
       after_human_task: -1
       start_delay: 2.0
-      reach_target: [-0.3,0.65,0.2]
+      reach_target: [-0.3,0.65,0.05]
       arm: "right"
       check_pos: true
     "4":
@@ -193,12 +193,12 @@ test_sequence:
       after_robot_task: 0
       after_human_task: -1
       start_delay: 0.0
-      reach_target: [0.2,0.8,-0.1]
+      reach_target: [0.2,0.85,-0.1]
       arm: "left"
       check_pos: false
     "5":
       description: "place connecting rod in piston"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.0,0.4,0.1]
@@ -206,7 +206,7 @@ test_sequence:
       check_pos: true
     "6":
       description: "rest right arm"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.2,0.8,-0.1]
@@ -214,7 +214,7 @@ test_sequence:
       check_pos: false
     "7":
       description: "pick up the pin"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [0.2,0.5,0.00]
@@ -223,7 +223,7 @@ test_sequence:
       check_pos: false
     "8":
       description: "insert pin through piston and rod"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 2.0
       reach_target: [-0.0,0.4,0.05]
@@ -232,7 +232,7 @@ test_sequence:
       check_pos: true
     "9":
       description: "put the piston rod assembly into the block"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 2.0
       reach_target: [-0.2,0.4,0.05]
@@ -241,7 +241,7 @@ test_sequence:
       check_pos: true
     "10":
       description: "ensure the left arm is out of the way"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [0.2,0.8,-0.1]
@@ -256,7 +256,7 @@ test_sequence:
     #   arm: "right"
     "11":
       description: "pick up connecting rod 2"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [-0.39,0.25,0.05]
@@ -264,7 +264,7 @@ test_sequence:
       check_pos: true
     "12":
       description: "bring connecting rod 2 near to assembly area"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 2.0
       reach_target: [-0.3,0.65,0.2]
@@ -272,7 +272,7 @@ test_sequence:
       check_pos: true
     "13":
       description: "ensure the left arm is out of the way"
-      after_robot_task: 8
+      after_robot_task: 9
       after_human_task: -1
       start_delay: 0.0
       reach_target: [0.2,0.8,-0.1]

@@ -22,7 +22,7 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
 }
 
 float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq) {
-    ROS_INFO_STREAM("pub mode start:"<<start_seq<<","<<data.size());
+    ROS_INFO_STREAM("pub human start:"<<start_seq<<", steps:"<<data.size()<<", robot step:"<<robot_step<<", time into robot seq:"<<start_tm_in_robot_seq);
     if ((start_seq<0)||(start_seq>=data.size())) return 0.0;
     generate_full_sequence(start_seq,robot_step,start_tm_in_robot_seq);
     stap_warp::joint_seq seq_msg;
@@ -51,10 +51,10 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
         ROS_INFO_STREAM("adding prediction for human step "<<s);
         for (int i=0;i<data[s].get_seq_size();i++) {
             float seq_time = std::get<0>(data[s].get_seq(i))+elapsed_tm;
+            ROS_INFO_STREAM("seq time2:"<<seq_time<<", elpased tm:"<<elapsed_tm<<" from human "<<s<<", step "<<i<<", tm "<<std::get<0>(data[s].get_seq(i)));
             if (seq_time>=0.0) {
                 stap_warp::joint_seq_elem seq_elem;
                 seq_elem.time = seq_time;
-                ROS_INFO_STREAM("seq time2:"<<seq_elem.time);
                 seq_elem.joint_pos = std::get<1>(data[s].get_seq(i));
                 seq_elem.quats = std::get<2>(data[s].get_seq(i));
                 seq_msg.sequence.push_back(seq_elem);
