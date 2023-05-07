@@ -4,7 +4,7 @@ test_sequence:
       length: 3
       description: "get engine block at left"
       show_human_rate: 10
-      simulated_switch_times: [5.0,10.0,15.0,20.0]
+      simulated_switch_times: [8.0,12.0,15.0,20.0]
       "0":
         description: "reach for the block"
         after_robot_task: -1
@@ -110,7 +110,7 @@ test_sequence:
         end_delay: 0.0
         arm: "both"
         check_pos: true
-      simulated_switch_times: [5.0,10.0,15.0,20.0]
+      simulated_switch_times: [2.0,7.0,12.0,17.0] #[5.0,10.0,15.0,20.0]
       # "4":
       #   description: "separate arms"
       #   after_robot_task: -1

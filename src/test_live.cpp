@@ -107,8 +107,9 @@ int main(int argc, char** argv) {
     ros::Publisher model_pub = nh.advertise<std_msgs::Float32>( "/model_disp_req", 0,false);
     ros::Publisher model_all_pub = nh.advertise<std_msgs::Bool>( "/model_disp_all_req", 0,false);
     ros::Publisher centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
-    ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
+    ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/nominal_plan",1);
     ros::Publisher pub_human_status = nh.advertise<visualization_msgs::Marker>("/human_status",1);
+    ros::Publisher pub_pause_tracking = nh.advertise<std_msgs::Bool>("/pause_tracking",1);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
     ros::Subscriber sub_human_done = nh.subscribe<std_msgs::Float32MultiArray>("/human_task_status",1,human_done_cb);
     std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
@@ -322,8 +323,8 @@ int main(int argc, char** argv) {
     grav << 0, 0, -9.806;
 
     rosdyn::ChainPtr chain = rosdyn::createChain(urdf_model, base_frame_, tool_frame, grav);
-    std::string log_file= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_live.csv";
-    std::string log_file2= ros::package::getPath("predicted_obstacle_planning_cost_test_edo")+"/data/"+ log_file_name +"_solver_perf_live.csv";
+    std::string log_file= ros::package::getPath("stap_warp")+"/data/"+ log_file_name +"_live.csv";
+    std::string log_file2= ros::package::getPath("stap_warp")+"/data/"+ log_file_name +"_solver_perf_live.csv";
     data_recorder rec(nh,log_file, scene,test_skeleton,model,state,human_link_lengths2,human_link_radii2,chain,log_file2);
     ros::Timer start_human = nh.createTimer(ros::Duration(0.1),start_timer);
     start_human.stop();
@@ -356,6 +357,9 @@ int main(int argc, char** argv) {
     human_data->show_predictions(human_link_lengths,human_link_radii);
 
     for (int test_num=0;test_num<num_tests;test_num++) {
+      std_msgs::Bool pause_track_msg;
+      pause_track_msg.data = true;
+      pub_pause_tracking.publish(pause_track_msg);
       std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
       test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
       // human_occupany.set_occupancy(std::vector<Eigen::VectorXf>());
@@ -410,6 +414,9 @@ int main(int argc, char** argv) {
         continue;
       }    
 
+      pause_track_msg.data = false;
+      pub_pause_tracking.publish(pause_track_msg);
+      
       est_plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
       // avoid_offset = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
       // for (int i=0;i<avoid_pts.size();i++) {
@@ -626,6 +633,7 @@ int main(int argc, char** argv) {
             mkr.scale.z = 0.2;
             mkr.header.frame_id = "world";
             ros::Time human_start_time = ros::Time::now();
+            ros::Rate r1(10);
             while (((rec.joint_pos_vec-goal_vec).norm()>0.001)&&(ros::ok())) {
               std::stringstream str;
               if (human_step<human_data->get_num_steps()) {
@@ -659,7 +667,7 @@ int main(int argc, char** argv) {
               pub_human_status.publish(mkr);
               //std::max((ros::Time::now()-p_start).toSec(),0.0);
               stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
-              ros::Duration(0.1).sleep();
+              // r1.sleep();
             }
             mkr.text = "Robot HRI segment is done!";
             pub_human_status.publish(mkr);

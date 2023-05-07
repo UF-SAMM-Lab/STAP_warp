@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
     ros::Publisher model_pub = nh.advertise<std_msgs::Float32>( "/model_disp_req", 0,false);
     ros::Publisher model_all_pub = nh.advertise<std_msgs::Bool>( "/model_disp_all_req", 0,false);
     ros::Publisher centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
-    ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
+    ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/nominal_plan",1);
     std::string plan_group = "manipulator";
     if (!nh.getParam("/plan_group",plan_group))
     {

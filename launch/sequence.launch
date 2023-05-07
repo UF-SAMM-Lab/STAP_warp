@@ -1,6 +1,6 @@
 <launch>
     <arg name="test" default="1" />
-    <arg name="planning_time" default="60" />
+    <arg name="planning_time" default="5" />
     <arg name="debug" default="false" />
     <arg name="avoid_time_offset" default="0.0" />
     <arg name="num_tests" default="1" />

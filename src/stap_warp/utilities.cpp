@@ -766,7 +766,7 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
   visualization_msgs::Marker mkr;
   mkr.header.frame_id = "world";
   mkr.id = 20000;
-  mkr.type = 4;
+  mkr.type = 7;
   mkr.pose.position.x = 0;
   mkr.pose.position.y = 0;
   mkr.pose.position.z = 0;
@@ -775,11 +775,36 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
   mkr.pose.orientation.y = 0;
   mkr.pose.orientation.z = 0;
   mkr.color.a = 1.0;
-  mkr.color.g = 1.0;
-  mkr.scale.x = 0.01;
+  mkr.color.r = 1.0;
+  mkr.scale.x = 0.04;
+  mkr.scale.y = 0.04;
+  mkr.scale.z = 0.04;
+  mkr.action = visualization_msgs::Marker::ADD;
   mkr.lifetime = ros::Duration();
   Eigen::VectorXd q1(6);
   Eigen::VectorXd q2(6);
+  for (int i=0;i<plan.trajectory_.joint_trajectory.points.size();i++) {
+    for (int q=0;q<6;q++) q1[q] = plan.trajectory_.joint_trajectory.points[i].positions[q];
+    state->setJointGroupPositions("edo",q1);
+    geometry_msgs::Pose pose;
+    tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+    mkr.points.push_back(pose.position);
+  }
+  nom_plan_pub.publish(mkr);
+  visualization_msgs::Marker mkr2;
+  mkr2.header.frame_id = "world";
+  mkr2.id = 20001;
+  mkr2.type = 4;
+  mkr2.pose.position.x = 0;
+  mkr2.pose.position.y = 0;
+  mkr2.pose.position.z = 0;
+  mkr2.pose.orientation.w = 1;
+  mkr2.pose.orientation.x = 0;
+  mkr2.pose.orientation.y = 0;
+  mkr2.pose.orientation.z = 0;
+  mkr2.color.a = 1.0;
+  mkr2.color.g = 1.0;
+  mkr2.scale.x = 0.01;
   for (int i=1;i<plan.trajectory_.joint_trajectory.points.size();i++) {
     for (int q=0;q<6;q++) q1[q] = plan.trajectory_.joint_trajectory.points[i-1].positions[q];
     for (int q=0;q<6;q++) q2[q] = plan.trajectory_.joint_trajectory.points[i].positions[q];
@@ -791,10 +816,10 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
       state->setJointGroupPositions("edo",q3);
       geometry_msgs::Pose pose;
       tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
-      mkr.points.push_back(pose.position);
+      mkr2.points.push_back(pose.position);
     }
   }
-  nom_plan_pub.publish(mkr);
+  nom_plan_pub.publish(mkr2);
 }
 
 moveit_msgs::CollisionObject createCollisionBox(Eigen::Vector3f dims, Eigen::Vector3f position, Eigen::Quaternionf quat, std::string id)

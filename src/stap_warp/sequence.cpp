@@ -668,7 +668,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     move_group.setPlanningTime(planning_time);
     planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
     last_perf_received = ros::Time::now();
-    nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/marker_visualization_topic",1);
+    nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/nominal_plan",1);
     grip_pos_pub = nh.advertise<std_msgs::Float32MultiArray>("/set_gripper_open_close", 1);
     grip_pub = nh.advertise<std_msgs::Bool>("/open_gripper", 1);        
     std_msgs::Float32MultiArray gripper_pos;
