@@ -20,6 +20,10 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
     human_done_srv = nh.serviceClient<stap_warp::human_motion_done>("human_motion_done");
     human_reset_srv = nh.serviceClient<stap_warp::human_motion_reset>("human_human_motion_resetmotion_done");
     wrist_trace_pub = nh.advertise<visualization_msgs::Marker>("prediction_wrist_traces", 0,false);
+    nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/simulated_switch_times", sim_switch_times);
+    std::cout<<"sim switch times:";
+    for (int i =0;i<sim_switch_times.size();i++) std::cout<<sim_switch_times[i]<<",";
+    std::cout<<std::endl;
 }
 
 float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq) {
@@ -220,10 +224,26 @@ bool humans::is_step_done(int step) {
     if ((step<0)||(step>data.size())) return false;
     if (!data[step].check_pos) return true;
     stap_warp::human_motion_done srv;
-    srv.request.reach_target = data[step].get_tgt();
-    srv.request.active_hand = !data[step].arm_right;
-    if (human_done_srv.call(srv)) {
-        return srv.response.done;
+    if (data[step].both_arms) {
+        bool left_arm_done = false;
+        srv.request.reach_target = data[step].reach_target_left;
+        srv.request.active_hand = true;
+        if (human_done_srv.call(srv)) {
+            left_arm_done=srv.response.done;
+        }
+        bool right_arm_done = false;
+        srv.request.reach_target = data[step].reach_target_right;
+        srv.request.active_hand = false;
+        if (human_done_srv.call(srv)) {
+            right_arm_done=srv.response.done;
+        }
+        return left_arm_done && right_arm_done;
+    } else {
+        srv.request.reach_target = data[step].get_tgt();
+        srv.request.active_hand = !data[step].arm_right;
+        if (human_done_srv.call(srv)) {
+            return srv.response.done;
+        }
     }
     ROS_ERROR("human done server call failed");
     return false;
@@ -443,14 +463,14 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=0;j<4;j++) quat.push_back(tmp_quat[j]);
             }
             if (use_left) {
-                left_arm_quats = std::vector<float>(left_quats[i].second.begin()+23,left_quats[i].second.begin()+8+23);
+                left_arm_quats = std::vector<float>(left_quats[i].second.begin()+23,left_quats[i].second.end());
             }
             if (use_right) {
-                right_arm_quats = std::vector<float>(right_quats[i].second.begin()+15,right_quats[i].second.begin()+8+15);
+                right_arm_quats = std::vector<float>(right_quats[i].second.begin()+15,right_quats[i].second.begin()+23);
             }
                 
-            for (int j=0;j<8;j++) quat.push_back(left_arm_quats[j]);
             for (int j=0;j<8;j++) quat.push_back(right_arm_quats[j]);
+            for (int j=0;j<8;j++) quat.push_back(left_arm_quats[j]);
             std::vector<float> joint_vec;
             Eigen::Matrix3Xd joint_mat = Eigen::MatrixXd::Zero(3,15);
             std::vector<Eigen::Vector3f> link_centroids;

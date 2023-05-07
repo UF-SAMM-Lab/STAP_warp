@@ -156,7 +156,8 @@ test_sequence:
         planner: irrta
     human_sequence:
       length: 21
-      start_pose: []    
+      start_pose: []  
+      simulated_switch_times: [0.0]  
       "0":
         description: "right arm start pose"
         after_robot_task: -1

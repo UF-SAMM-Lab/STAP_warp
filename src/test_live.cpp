@@ -13,8 +13,8 @@ std::string goal_id;
 ros::Time start_tm;
 double start_duration;
 std::mutex skel_mtx;
-std::mutex stat_mtx;
-std::vector<float> human_quat_pose = {0,0.75,-0.03,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.707,0.0,0.707,0.0,0,0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,-1.0,0.0};
+std::mutex stat_mtx;                //x,  y ,  z  ,  w,  x,  y,  z,  w,  x,  y,  z,    w,  x,    y,  z,w,x,   y,  z,  w,  x,  y,  z,  w,  x,  y,  z,  w,  x,   y,  z,  
+std::vector<float> human_quat_pose = {0,0.75,-0.03,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.707,0.0,0.707,0.0,0,0,-1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,-1.0,0.0};
 std_msgs::Float32MultiArray human_stat;
 
 void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {
@@ -121,6 +121,11 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/ctrl_ns",ctrl_ns))
     {
       ROS_WARN("ctrl_ns is not defined");
+    }
+    bool simulate_human = false;
+    if (!nh.getParam("/test_live/simulate_human",simulate_human))
+    {
+      ROS_WARN("simulate_human is not defined");
     }
     ros::Publisher pub_cancel_traj = nh.advertise<actionlib_msgs::GoalID>( ctrl_ns+"/follow_joint_trajectory/cancel", 0,false);
     actionlib_msgs::GoalID goal_id_msg;
@@ -598,6 +603,8 @@ int main(int argc, char** argv) {
 
         if (i==1) {
             ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
+
+            pub_plan(nom_plan_pub,plans[i],state);
             move_group.asyncExecute(plans[i]);
             int human_step=0;
             ros::Duration(0.1).sleep();
@@ -618,10 +625,18 @@ int main(int argc, char** argv) {
             mkr.pose.orientation.w = 0;
             mkr.scale.z = 0.2;
             mkr.header.frame_id = "world";
+            ros::Time human_start_time = ros::Time::now();
             while (((rec.joint_pos_vec-goal_vec).norm()>0.001)&&(ros::ok())) {
               std::stringstream str;
               if (human_step<human_data->get_num_steps()) {
-                if (human_data->is_step_done(human_step)) {
+                if (simulate_human) {
+                  ROS_INFO_STREAM("time:"<<(ros::Time::now()-human_start_time).toSec()<<", sim step:"<<human_data->sim_switch_times[human_step]);
+                  if ((ros::Time::now()-human_start_time).toSec()>human_data->sim_switch_times[human_step]) {
+                    ROS_INFO_STREAM("human step "<<human_step<<" is done");
+                    human_step++;
+                  }
+                }
+                else if (human_data->is_step_done(human_step)) {
                   ROS_INFO_STREAM("human step "<<human_step<<" is done");
                   human_step++;
                   human_data->reset_motion_done();

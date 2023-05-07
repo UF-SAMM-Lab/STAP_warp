@@ -231,7 +231,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 }
                 // std::cout<<"q:"<<cur_q.transpose()<<std::endl;
                 // std::cout<<"dq:"<<dq.transpose()<<std::endl;
-                std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_q,dq);
+                // std::vector<std::pair<double,Eigen::Vector3d>> scale_vects = ssm->computeScalesVectors(cur_q,dq);
+                std::vector<std::vector<std::pair<double,Eigen::Vector3d>>> scale_vects = ssm->computeMoreScalesVectors(cur_q,dq);
                 Eigen::VectorXd tau(diff.size());
                 std::vector<Eigen::Affine3d,Eigen::aligned_allocator<Eigen::Affine3d>> T_base_all_links = chain_->getTransformations(cur_q);
                 tau.setZero();
@@ -240,26 +241,47 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 for (int jj=0;jj<scale_vect_ids.size();jj++) {
                   int j = scale_vect_ids[jj];
                   Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
-                  if (scale_vects[j].first<1.0) {
-                    need_attr = true;
-                    min_scale = std::min(min_scale,scale_vects[j].first);
-                    // Eigen::Vector3d force_vec = scale_vects[j].second.cross(Eigen::Vector3d::UnitZ()).normalized();
-                    // force_vec = (0.5*(force_vec+scale_vects[j].second)).normalized();
-                    Eigen::Vector3d force_vec = scale_vects[j].second;
-                    Eigen::VectorXd tmp_tau = repulsion*(1.0-std::max(scale_vects[j].first,0.0))*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
-                    // Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.1)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
-                    tau += tmp_tau;
-                    geometry_msgs::Point pt1;
-                    pt1.x = T_base_all_links[j](0,3);
-                    pt1.y = T_base_all_links[j](1,3);
-                    pt1.z = T_base_all_links[j](2,3);
-                    geometry_msgs::Point pt2;
-                    pt2.x = T_base_all_links[j](0,3) + 0.1*force_vec[0];
-                    pt2.y = T_base_all_links[j](1,3) + 0.1*force_vec[1];
-                    pt2.z = T_base_all_links[j](2,3) + 0.1*force_vec[2];
-                    mkr4.points.push_back(pt1);
-                    mkr4.points.push_back(pt2);
-                    // std::cout<<"j:"<<j<<",vec:"<<scale_vects[j].second.transpose()<<",f vec:"<<force_vec.transpose()<<", scale:"<<scale_vects[j].first<<", tau:"<<tmp_tau.transpose()<<std::endl;
+                  // if (scale_vects[j].first<1.0) {
+                  //   need_attr = true;
+                  //   min_scale = std::min(min_scale,scale_vects[j].first);
+                  //   // Eigen::Vector3d force_vec = scale_vects[j].second.cross(Eigen::Vector3d::UnitZ()).normalized();
+                  //   // force_vec = (0.5*(force_vec+scale_vects[j].second)).normalized();
+                  //   Eigen::Vector3d force_vec = scale_vects[j].second;
+                  //   Eigen::VectorXd tmp_tau = repulsion*(1.0-std::max(scale_vects[j].first,0.0))*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                  //   // Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.1)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                  //   tau += tmp_tau;
+                  //   geometry_msgs::Point pt1;
+                  //   pt1.x = T_base_all_links[j](0,3);
+                  //   pt1.y = T_base_all_links[j](1,3);
+                  //   pt1.z = T_base_all_links[j](2,3);
+                  //   geometry_msgs::Point pt2;
+                  //   pt2.x = T_base_all_links[j](0,3) + 0.1*force_vec[0];
+                  //   pt2.y = T_base_all_links[j](1,3) + 0.1*force_vec[1];
+                  //   pt2.z = T_base_all_links[j](2,3) + 0.1*force_vec[2];
+                  //   mkr4.points.push_back(pt1);
+                  //   mkr4.points.push_back(pt2);
+                  //   // std::cout<<"j:"<<j<<",vec:"<<scale_vects[j].second.transpose()<<",f vec:"<<force_vec.transpose()<<", scale:"<<scale_vects[j].first<<", tau:"<<tmp_tau.transpose()<<std::endl;
+                  // }
+                  for (int k=0;k<scale_vects[j].size();k++) {
+                    if (scale_vects[j][k].first<1.0) {
+                      need_attr = true;
+                      min_scale = std::min(min_scale,scale_vects[j][k].first);
+                      Eigen::Vector3d force_vec = scale_vects[j][k].second;
+                      Eigen::VectorXd tmp_tau = repulsion*(1.0-std::max(scale_vects[j][k].first,0.0))*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j][k].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                      // Eigen::VectorXd tmp_tau =1.0*repulsion*(1.0/std::max(scale_vects[j].first,0.1)-1)*jacobian.block(0,0,3,jacobian.cols()).transpose()*scale_vects[j].second;//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                      tau += tmp_tau;
+                      geometry_msgs::Point pt1;
+                      pt1.x = T_base_all_links[j](0,3);
+                      pt1.y = T_base_all_links[j](1,3);
+                      pt1.z = T_base_all_links[j](2,3);
+                      geometry_msgs::Point pt2;
+                      pt2.x = T_base_all_links[j](0,3) + 0.1*force_vec[0];
+                      pt2.y = T_base_all_links[j](1,3) + 0.1*force_vec[1];
+                      pt2.z = T_base_all_links[j](2,3) + 0.1*force_vec[2];
+                      mkr4.points.push_back(pt1);
+                      mkr4.points.push_back(pt2);
+                      // std::cout<<"j:"<<j<<",vec:"<<scale_vects[j].second.transpose()<<",f vec:"<<force_vec.transpose()<<", scale:"<<scale_vects[j].first<<", tau:"<<tmp_tau.transpose()<<std::endl;
+                    }
                   }
                 }
                 nom_time = last_wpt_time + (1.0/std::max(min_scale,0.01))*diff_pct*nominal_time;
@@ -301,13 +323,13 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 if (!state->satisfiesBounds())
                 {
                   ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
-                  return;
+                  continue;
                 }
 
                 if (!planning_scene->isStateValid(*state,"edo"))
                 {
                   ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
-                  return;
+                  continue;
                 }
 
                 new_q= new_q.cwiseMin(q_max).cwiseMax(q_min);

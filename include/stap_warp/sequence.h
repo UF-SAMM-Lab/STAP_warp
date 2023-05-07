@@ -84,6 +84,7 @@ class humans {
             for (int i=0;i<data.size();i++) data[i].set_dimensions(link_len,link_r);
         }
         void show_sequence(void);
+        std::vector<double> sim_switch_times;
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;

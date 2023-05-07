@@ -5,6 +5,7 @@
     <arg name="avoid_time_offset" default="0.0" />
     <arg name="num_tests" default="1" />
     <arg name="stap_offset" default="0" />
+    <arg name="simulate_human" default="false" />
     <rosparam file="$(find stap_warp)/config/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
@@ -29,6 +30,7 @@
     <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
     <node name="test_live" pkg="stap_warp" type="test_live" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
         <param name="avoid_time_offset" value="$(arg avoid_time_offset)"/>
+        <param name="simulate_human" value="$(arg simulate_human)"/>
     </node> 
     <!-- launch-prefix="gdb -ex run  -args"> -->
     <!-- "gdb -.-ex run -.-args"  -->
