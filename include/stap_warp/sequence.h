@@ -85,6 +85,7 @@ class humans {
         }
         void show_sequence(void);
         std::vector<double> sim_switch_times;
+        void save_full_seq(std::string file_name);
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;

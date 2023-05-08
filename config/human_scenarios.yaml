@@ -67,20 +67,10 @@ test_sequence:
         check_pos: true
   "2":
     human_sequence:
-      length: 4
+      length: 5
       description: "gator chomp"
       show_human_rate: 10
       "0":
-        description: "separate arms"
-        after_robot_task: -1
-        after_human_task: -1
-        start_delay: 2.0
-        reach_target_left: [0.1,0.35,0.0]
-        reach_target_right: [-0.1,0.35,0.9]
-        end_delay: 0.0
-        arm: "both"
-        check_pos: true
-      "1":
         description: "extend arms"
         after_robot_task: -1
         after_human_task: -1
@@ -90,7 +80,27 @@ test_sequence:
         end_delay: 0.0
         arm: "both"
         check_pos: true
+      "1":
+        description: "separate arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target_left: [0.1,0.35,0.0]
+        reach_target_right: [-0.1,0.35,0.9]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
       "2":
+        description: "extend arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target_left: [0.1,0.1,0.45]
+        reach_target_right: [-0.1,0.1,0.45]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "3":
         description: "separate arms"
         after_robot_task: -1
         after_human_task: -1
@@ -100,7 +110,7 @@ test_sequence:
         end_delay: 0.0
         arm: "both"
         check_pos: true
-      "3":
+      "4":
         description: "back together"
         after_robot_task: -1
         after_human_task: -1
@@ -110,7 +120,7 @@ test_sequence:
         end_delay: 0.0
         arm: "both"
         check_pos: true
-      simulated_switch_times: [2.0,7.0,12.0,17.0] #[5.0,10.0,15.0,20.0]
+      simulated_switch_times: [1.0,5.0,10.0,15.0,20.0] #[2.0,7.0,12.0,17.0] 
       # "4":
       #   description: "separate arms"
       #   after_robot_task: -1

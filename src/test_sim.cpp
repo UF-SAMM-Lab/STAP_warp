@@ -417,6 +417,7 @@ int main(int argc, char** argv) {
           num_tests++;
           continue;
         }    
+        pub_plan(nom_plan_pub,plan,state);
         
 
         est_plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();

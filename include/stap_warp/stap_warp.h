@@ -49,8 +49,8 @@ class stap_warper {
         ros::Publisher blend_pub;
         int warp_iterations = 1;
         double attraction = 0.0001;
-        Eigen::ArrayXd max_vels_ = Eigen::ArrayXd::Constant(6,1.5);
-        Eigen::ArrayXd max_accels_ = Eigen::ArrayXd::Constant(6,1.5);
+        Eigen::ArrayXd max_vels_ = Eigen::ArrayXd::Constant(6,0.7);
+        Eigen::ArrayXd max_accels_ = Eigen::ArrayXd::Constant(6,0.7);
         robot_state::RobotStatePtr state;
         robot_model::RobotModelPtr model;
         moveit::planning_interface::MoveGroupInterface move_group;
@@ -59,5 +59,7 @@ class stap_warper {
         ros::Time last_warp_time = ros::Time::now();
         std::vector<int> scale_vect_ids;
         planning_scene::PlanningScenePtr planning_scene;
+        double direct_path_attraction=0.0001;
+        double connection_min_dist = 0.5;
 };
 }

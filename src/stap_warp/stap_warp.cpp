@@ -88,6 +88,18 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
     } else {
       ROS_INFO_STREAM("cycle_time:"<<cycle_time);
     }
+    if (!nh.getParam("/warp/direct_path_attraction",direct_path_attraction))
+    {
+      ROS_WARN("warp/direct_path_attraction is not defined");
+    } else {
+      ROS_INFO_STREAM("direct_path_attraction:"<<direct_path_attraction);
+    }
+    if (!nh.getParam("/warp/connection_min_dist",connection_min_dist))
+    {
+      ROS_WARN("warp/connection_min_dist is not defined");
+    } else {
+      ROS_INFO_STREAM("connection_min_dist:"<<connection_min_dist);
+    }
     scale_vect_ids = {3,4,5,8};
     planning_scene = planning_scene::PlanningScene::clone(planning_scene_);
     collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
@@ -121,7 +133,16 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     if (path_time_pct>=1.0) return;
     Eigen::VectorXd goal_pose(cur_pose.size());
     for (int i=0;i<cur_pose.size();i++) goal_pose[i] = trj.points.back().positions[i];
-    if ((cur_pose-goal_pose).norm()<0.7) return;
+    Eigen::VectorXd direct_path_diff = goal_pose-cur_pose;
+    double direct_path_len = (direct_path_diff).norm();
+    if (direct_path_len<0.7) return;
+    int num_steps = std::max(std::ceil(direct_path_len/0.1),1.0);
+    Eigen::MatrixXd direct_path_pts;
+    direct_path_pts.resize(cur_pose.size(),num_steps+1);
+    for (int s=0;s<=num_steps;s++) {
+      double pct = (double)s/(double)num_steps;
+      direct_path_pts.col(s) = cur_pose+pct*direct_path_diff;
+    }
     double path_time = path_time_pct*trj.points.back().time_from_start.toSec();
     // std::cout<<"start stap warp"<<path_time_pct<<","<<path_time<<std::endl;
     int start_p = 1;
@@ -154,6 +175,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
       }
       prev_pose = tmp_vec;
     }
+    std::cout<<"goal pose:"<<poses.back().transpose()<<std::endl;
     double first_pt_time = wp_times[0];
     // std::cout<<"start stap warp loop"<<std::endl;
     // std::cout<<"old poses:\n";
@@ -194,6 +216,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
         int prev_attr_steps = 0;
         int prev_repl_steps = 0;
         Eigen::VectorXd last_repulsion_tau = Eigen::VectorXd::Zero(poses[0].size());
+        int last_direct_step = 0;
         for (int p=1;p<poses.size();p++) {
             Eigen::VectorXd diff = poses[p]-poses[p-1];
             int num_steps = 1;
@@ -314,7 +337,21 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                   }
                 }
 
-
+                //pull path toward direct path
+                double min_dist=std::numeric_limits<double>::infinity();
+                for (int j=last_direct_step;j<direct_path_pts.cols();j++) {
+                  double dist = (direct_path_pts.col(j)-cur_q).norm();
+                  if (dist<=min_dist) {
+                    last_direct_step = j;
+                    min_dist = dist;
+                  } else {
+                    break;
+                  }
+                }
+                // std::cout<<"last_direct_step:"<<last_direct_step<<","<<direct_path_pts.cols()<<std::endl;
+                Eigen::VectorXd direct_path_tau = -direct_path_attraction*(direct_path_pts.col(last_direct_step)-cur_q);
+                // std::cout<<direct_path_pts.col(last_direct_step).transpose()<<","<<cur_q.transpose()<<","<<direct_path_tau.transpose()<<std::endl;
+                tau += direct_path_tau;
                 // std::cout<<"tau sum:"<<tau.transpose()<<std::endl;
                 Eigen::VectorXd new_q = cur_q-1.0*tau;                
                 
@@ -323,16 +360,24 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 if (!state->satisfiesBounds())
                 {
                   ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
+                  new_poses.push_back(cur_q);
+                  new_wpt_times.push_back(nom_time);
                   continue;
                 }
 
                 if (!planning_scene->isStateValid(*state,"edo"))
                 {
                   ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
+                  new_poses.push_back(cur_q);
+                  new_wpt_times.push_back(nom_time);
                   continue;
                 }
 
                 new_q= new_q.cwiseMin(q_max).cwiseMax(q_min);
+                if (!new_poses.empty()) {
+                  Eigen::VectorXd new_diff_time = ((new_q-new_poses.back()).array().abs()/max_vels_).matrix();
+                  nom_time = last_wpt_time + (1.0/std::max(min_scale,0.01))*new_diff_time.maxCoeff();
+                }
                 new_poses.push_back(new_q);
                 new_wpt_times.push_back(nom_time);
                 last_wpt_time = nom_time;
@@ -415,9 +460,10 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
     mkr2.points.push_back(pose.position);
     diff = (poses[1]-poses[0]).normalized();
+    prev_pose = cur_pose;
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if (((abs(new_diff.dot(diff))<connection_tol)&&((poses[i]-cur_pose).norm()>0.8))) {
+      if (((abs(new_diff.dot(diff))<connection_tol)&&((poses[i-1]-cur_pose).norm()>0.8))&&((poses[i-1]-prev_pose).norm()>connection_min_dist)) {
         for (int j=0;j<6;j++) pt.positions[j] = poses[i-1][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
@@ -427,6 +473,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
         tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
         mkr2.points.push_back(pose.position);
         diff = new_diff;
+        prev_pose = poses[i-1];
       }
     }
     for (int j=0;j<6;j++) pt.positions[j] = poses.back()[j];

@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
     actionlib_msgs::GoalID goal_id_msg;
     ros::Subscriber sub_goal = nh.subscribe<control_msgs::FollowJointTrajectoryActionGoal>(ctrl_ns+"/follow_joint_trajectory/goal",1,goal_callback);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
+    ros::Publisher pub_pause_tracking = nh.advertise<std_msgs::Bool>("/pause_tracking",1);
     std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
     //do a test with no obsctacles:
     std::vector<double> start_joint;
@@ -177,6 +178,12 @@ int main(int argc, char** argv) {
     std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
     stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr,pub_txt);
     human_data->predicted_motion();
+    human_data->generate_full_sequence(0,0,0.0);
+    human_data->save_full_seq("sequence_human.csv");
+    human_data->generate_full_sequence(5,10,0.0);
+    human_data->save_full_seq("sequence_human2.csv");
+    human_data->generate_full_sequence(14,18,0.0);
+    human_data->save_full_seq("sequence_human3.csv");
     human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
     //pre-plan all robot motions
@@ -185,6 +192,10 @@ int main(int argc, char** argv) {
     double last_human_time = 0.0;
     double segment_time = 0.0;
     double human_done_time = 0.0;
+
+    std_msgs::Bool pause_track_msg;
+    pause_track_msg.data = true;
+    pub_pause_tracking.publish(pause_track_msg);
     std::vector<double> last_waypoint = move_group.getCurrentJointValues();
     //plan robot segment nominal paths based on nominal predictions
     for (int i=0;i<robot_data.num_segments();i++) {
@@ -202,8 +213,8 @@ int main(int argc, char** argv) {
       }
       last_human_time = human_data->pub_model(h,i,-segment_time);
       human_data->show_sequence();
-      std::cout<<"see the motion"<<std::endl;
-      std::cin.ignore();
+      // std::cout<<"see the motion"<<std::endl;
+      // std::cin.ignore();
       ros::Duration(0.5).sleep();
       double planned_time = robot_data.plan_robot_segment(i,last_waypoint);
       segment_time += planned_time;
@@ -219,11 +230,21 @@ int main(int argc, char** argv) {
 
     robot_data.set_gripper(true);
 
+    pause_track_msg.data = false;
+    pub_pause_tracking.publish(pause_track_msg);
+
     ros::Rate r(100);
     //now attempt execution
     int robot_step = 0;
     int human_step = 0;
     human_data->reset_motion_done();
+    rec->stop();
+
+    while (!rec->ready()) {
+      ROS_INFO_STREAM("/poses not publishing yet");
+      ros::Duration(1.0).sleep();
+    }
+    rec->start();
     while (ros::ok()) {
       if (robot_step>=robot_data.num_segments()) break;
       if (!robot_data.is_segment_active()) {
@@ -243,6 +264,7 @@ int main(int argc, char** argv) {
       r.sleep();
     } 
     while (!robot_data.is_segment_active()) ros::Duration(0.1).sleep();
+    rec->stop();
     while (human_step<human_data->get_num_steps()) {
       ROS_INFO_STREAM_THROTTLE(5,"waiting for the human to finish tasks:"<<human_step);
       if (human_data->is_step_done(human_step)) {
@@ -253,6 +275,7 @@ int main(int argc, char** argv) {
       ros::Duration(0.1).sleep();
     }
     ROS_INFO("done!");
+
 
 
 }

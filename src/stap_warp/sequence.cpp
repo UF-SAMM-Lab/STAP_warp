@@ -135,7 +135,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
         for (int i=0;i<data[s].get_seq_size();i++) {
             float seq_time = std::get<0>(data[s].get_seq(i))+elapsed_tm;
             if (seq_time>=0.0) {
-                full_joint_seq.emplace_back(elapsed_tm,std::get<3>(data[s].get_seq(i)));
+                full_joint_seq.emplace_back(seq_time,std::get<3>(data[s].get_seq(i)));
                 Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s].get_seq(i));
                 // std::cout<<"test:"<<tmp_jnts_mat.col(5).transpose()<<":"<<tmp_jnts_mat.col(8).transpose()<<std::endl;
                 geometry_msgs::Point pt;
@@ -151,11 +151,11 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
                 // std::cout<<pt<<std::endl;
                 std::vector<Eigen::Vector3f> tmp_jnts;
                 for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
-                full_joint_seq_f.emplace_back(elapsed_tm,tmp_jnts);
+                full_joint_seq_f.emplace_back(seq_time,tmp_jnts);
                 std::vector<Eigen::Quaternionf> tmp_quats;
                 std::vector<float> tmp_quat_vec = std::get<2>(data[s].get_seq(i));
                 for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
-                full_quat_seq.emplace_back(elapsed_tm,tmp_quats);
+                full_quat_seq.emplace_back(seq_time,tmp_quats);
                 some_points = true;
             }
         }
@@ -184,6 +184,21 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
         ROS_INFO_STREAM("no points:"<<s-1);
     }
     wrist_trace_pub.publish(mkr);
+}
+
+void humans::save_full_seq(std::string file_name) {
+    std::string log_file= ros::package::getPath("stap_warp")+"/data/"+file_name;
+    std::ofstream outFile(log_file,std::ofstream::trunc);
+
+    for (int i=0;i<full_quat_seq.size();i++) {
+        outFile<<full_quat_seq[i].first<<","<<full_joint_seq_f[i].second[0][0]<<","<<full_joint_seq_f[i].second[0][1]<<","<<full_joint_seq_f[i].second[0][2]<<",";
+        for (int j=0;j<full_quat_seq[i].second.size();j++) {
+            outFile<<full_quat_seq[i].second[j].w()<<","<<full_quat_seq[i].second[j].x()<<","<<full_quat_seq[i].second[j].y()<<","<<full_quat_seq[i].second[j].z()<<",";
+        }
+        outFile<<"\n";
+        std::cout<<"wrote a line\n";
+    }
+    outFile.close();
 }
 
 void humans::predicted_motion(void) {
