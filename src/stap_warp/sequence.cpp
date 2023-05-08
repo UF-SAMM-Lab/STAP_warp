@@ -205,6 +205,7 @@ void humans::predicted_motion(void) {
     std::vector<float> pose = start_pose;
     for (int i=0;i<data.size();i++) {
         data[i].get_predicted_motion(pose);
+        data[i].set_nominal_seq();
         pose = data[i].get_last_pose();
     }
 }
@@ -233,6 +234,20 @@ void humans::show_predictions(std::vector<float> link_len,std::vector<float> lin
         data[i].show_human(link_len,link_r);
     }
     
+}
+
+bool humans::simulate_step(int step_num, double elapsed_time, std::vector<float>& current_pose) {
+    if ((step_num<0)||(step_num>data.size())) return true;
+    std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> step_seq = data[step_num].get_nominal_seq();
+    int i =0;
+    for (i=0;i<step_seq.size();i++) {
+        if (elapsed_time<std::get<0>(step_seq[i])) break;
+    }
+    if (i>step_seq.size()-1) i = step_seq.size()-1;
+    current_pose = std::get<2>(step_seq[i]);
+    // std::cout<<i<<","<<step_seq.size()<<std::endl;
+    data[step_num].show_step(i);
+    return elapsed_time>=data[step_num].get_step_end_time();
 }
 
 bool humans::is_step_done(int step) {
@@ -367,6 +382,40 @@ human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> pr
     nh.getParam("/human_link_radii", radii);
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/check_pos", check_pos);
 
+}
+
+void human::show_step(int step_num) {
+    if ((step_num<0)||(step_num>nom_sequence.size())) return;
+    std::vector<Eigen::Vector3f> link_centroids;
+    std::vector<Eigen::Quaternionf> link_quats;
+    Eigen::Matrix3Xd joint_vec = Eigen::MatrixXd::Zero(3,15);
+    forward_kinematics(std::get<2>(nom_sequence[step_num]),link_centroids,link_quats,joint_vec);
+    std::vector<int> ids = {0,1,3,4,5,6};
+    visualization_msgs::MarkerArray mkr_arr;
+    for (int b=0;b<6;b++) {
+        int a = ids[b];
+        visualization_msgs::Marker mkr;
+        mkr.id=mkr_arr.markers.size()+1;
+        mkr.lifetime = ros::Duration(5);
+        mkr.type=mkr.CYLINDER;
+        mkr.color.r=1.0;//c[0];
+        mkr.color.b=0.0;//c[1];
+        mkr.color.g=0.0;//c[2];
+        mkr.color.a=1.0;
+        mkr.pose.position.x = link_centroids[b][0];
+        mkr.pose.position.y = link_centroids[b][1];
+        mkr.pose.position.z = link_centroids[b][2];
+        mkr.pose.orientation.x = link_quats[b].x();
+        mkr.pose.orientation.y = link_quats[b].y();
+        mkr.pose.orientation.z = link_quats[b].z();
+        mkr.pose.orientation.w = link_quats[b].w();
+        mkr.scale.x = 2*radii[a];
+        mkr.scale.y = 2*radii[a];
+        mkr.scale.z = link_lengths_[a];
+        mkr.header.frame_id = "world";
+        mkr_arr.markers.push_back(mkr);
+    }
+    seq_pub->publish(mkr_arr);
 }
 
 void human::get_predicted_motion(std::vector<float> start_pose) {

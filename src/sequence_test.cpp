@@ -240,10 +240,7 @@ int main(int argc, char** argv) {
     human_data->reset_motion_done();
     rec->stop();
 
-    while (!rec->ready()) {
-      ROS_INFO_STREAM("/poses not publishing yet");
-      ros::Duration(1.0).sleep();
-    }
+    ros::Time sim_human_start = ros::Time::now();
     rec->start();
     while (ros::ok()) {
       if (robot_step>=robot_data.num_segments()) break;
@@ -256,7 +253,14 @@ int main(int argc, char** argv) {
         }
       }
       human_data->update_predictions(human_step,human_quat_pose,robot_step,0.0);
-      if (human_data->is_step_done(human_step)) {
+      if (simulated) {
+        double elapsed_tm = (ros::Time::now()-sim_human_start).toSec();
+        if ((human_data->simulate_step(human_step,elapsed_tm,human_quat_pose)) && (robot_step>human_data->human_prior_robot_task(human_step+1))) {
+          human_step++;
+          sim_human_start = ros::Time::now();
+        }
+
+      } else if (human_data->is_step_done(human_step)) {
         human_step++;
         human_data->reset_motion_done();
       }
@@ -267,7 +271,14 @@ int main(int argc, char** argv) {
     rec->stop();
     while (human_step<human_data->get_num_steps()) {
       ROS_INFO_STREAM_THROTTLE(5,"waiting for the human to finish tasks:"<<human_step);
-      if (human_data->is_step_done(human_step)) {
+      if (simulated) {
+        double elapsed_tm = (ros::Time::now()-sim_human_start).toSec();
+        if ((human_data->simulate_step(human_step,elapsed_tm,human_quat_pose)) && (robot_step>human_data->human_prior_robot_task(human_step+1))) {
+          human_step++;
+          sim_human_start = ros::Time::now();
+        }
+
+      } else if (human_data->is_step_done(human_step)) {
         human_step++;
         human_data->reset_motion_done();
       }

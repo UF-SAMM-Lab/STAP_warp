@@ -114,7 +114,7 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
 
 void stap_warper::act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj) {
   std::lock_guard<std::mutex> lock(trj_mtx);
-  std::cout<<"receiving actual trajectory\n";
+  // std::cout<<"receiving actual trajectory\n";
   cur_traj = *trj;
 }
 
@@ -175,7 +175,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
       }
       prev_pose = tmp_vec;
     }
-    std::cout<<"goal pose:"<<poses.back().transpose()<<std::endl;
+    // std::cout<<"goal pose:"<<poses.back().transpose()<<std::endl;
     double first_pt_time = wp_times[0];
     // std::cout<<"start stap warp loop"<<std::endl;
     // std::cout<<"old poses:\n";

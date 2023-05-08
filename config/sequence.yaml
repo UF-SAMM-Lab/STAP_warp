@@ -121,7 +121,7 @@ test_sequence:
         description: "go to place perch over piston fixture"
         type: 0
         goal: 3
-        after_human_task: 10
+        after_human_task: 7
         start_delay: 0.0
         pipeline: irrt_avoid
         planner: irrta
