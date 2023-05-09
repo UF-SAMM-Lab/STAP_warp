@@ -665,6 +665,7 @@ int main(int argc, char** argv) {
               }
               mkr.text = str.str();
               pub_human_status.publish(mkr);
+              human_data->show_reach_tgt(human_step);
               //std::max((ros::Time::now()-p_start).toSec(),0.0);
               stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
               // r1.sleep();

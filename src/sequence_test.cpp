@@ -220,6 +220,8 @@ int main(int argc, char** argv) {
       segment_time += planned_time;
       ROS_INFO_STREAM("preplanned robot segment "<<i<<" with est. time of "<<planned_time);
     }
+    pause_track_msg.data = false;
+    pub_pause_tracking.publish(pause_track_msg);
     ROS_INFO_STREAM("ready to start when a person is in the cell");
     if (!simulated) {
       while (!rec->ready()) {
@@ -230,8 +232,6 @@ int main(int argc, char** argv) {
 
     robot_data.set_gripper(true);
 
-    pause_track_msg.data = false;
-    pub_pause_tracking.publish(pause_track_msg);
 
     ros::Rate r(100);
     //now attempt execution

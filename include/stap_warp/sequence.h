@@ -45,6 +45,7 @@ class human {
         bool check_pos = false;
         std::vector<float> reach_target_left;
         std::vector<float> reach_target_right;
+        std::vector<float> reach_target;
         float get_step_end_time(void) {return std::get<0>(sequence.back());}
         void show_step(int step_num);
         void set_nominal_seq(void) {nom_sequence=sequence;}
@@ -52,7 +53,6 @@ class human {
         int id = 0;
         int prior_robot_task = -1;
         float start_delay = 0.0;
-        std::vector<float> reach_target;
         float end_delay = 0.0;
         std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> sequence;
         std::vector<float> end_pose;
@@ -96,7 +96,7 @@ class humans {
             return data[step_num].get_step_end_time();
         }
         bool simulate_step(int step_num, double elapsed_time, std::vector<float>& current_pose);
-
+        void show_reach_tgt(int step_num);
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;
@@ -111,6 +111,7 @@ class humans {
         float prediction_dt = 0.1;
         std::shared_ptr<ros::Publisher> pub_txt;
         ros::Publisher wrist_trace_pub;
+        ros::Publisher reach_tgt_pub;
 };
 class robot_segment {
     public:

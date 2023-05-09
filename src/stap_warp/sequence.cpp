@@ -20,6 +20,7 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
     human_done_srv = nh.serviceClient<stap_warp::human_motion_done>("human_motion_done");
     human_reset_srv = nh.serviceClient<stap_warp::human_motion_reset>("human_human_motion_resetmotion_done");
     wrist_trace_pub = nh.advertise<visualization_msgs::Marker>("prediction_wrist_traces", 0,false);
+    reach_tgt_pub = nh.advertise<visualization_msgs::Marker>("reach_tgt", 0,false);
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/simulated_switch_times", sim_switch_times);
     std::cout<<"sim switch times:";
     for (int i =0;i<sim_switch_times.size();i++) std::cout<<sim_switch_times[i]<<",";
@@ -186,6 +187,46 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     wrist_trace_pub.publish(mkr);
 }
 
+void humans::show_reach_tgt(int step_num) {
+    if ((step_num<0)||(step_num>data.size()-1)) return;
+    visualization_msgs::Marker mkr2;
+    mkr2.id=107;
+    mkr2.lifetime = ros::Duration(0.0);
+    mkr2.type=mkr2.SPHERE_LIST;
+    mkr2.color.r=0.0;
+    mkr2.color.b=1.0;
+    mkr2.color.g=0.0;
+    mkr2.color.a=1.0;
+    mkr2.pose.position.x = 0;
+    mkr2.pose.position.y = 0;
+    mkr2.pose.position.z = 0;
+    mkr2.pose.orientation.x = 0;
+    mkr2.pose.orientation.y = 0;
+    mkr2.pose.orientation.z = 0;
+    mkr2.pose.orientation.w = 1;
+    mkr2.scale.x = 0.04;
+    mkr2.scale.y = 0.04;
+    mkr2.scale.z = 0.04;
+    mkr2.header.frame_id = "world";
+    geometry_msgs::Point pt;
+    if (!data[step_num].both_arms) {
+        pt.x = data[step_num].reach_target[0];
+        pt.y = data[step_num].reach_target[1];
+        pt.z = data[step_num].reach_target[2];
+        mkr2.points.push_back(pt);
+    } else {
+        pt.x = data[step_num].reach_target_left[0];
+        pt.y = data[step_num].reach_target_left[1];
+        pt.z = data[step_num].reach_target_left[2];
+        mkr2.points.push_back(pt);
+        pt.x = data[step_num].reach_target_right[0];
+        pt.y = data[step_num].reach_target_right[1];
+        pt.z = data[step_num].reach_target_right[2];
+        mkr2.points.push_back(pt);
+    }
+    wrist_trace_pub.publish(mkr2);
+}
+
 void humans::save_full_seq(std::string file_name) {
     std::string log_file= ros::package::getPath("stap_warp")+"/data/"+file_name;
     std::ofstream outFile(log_file,std::ofstream::trunc);
@@ -237,7 +278,7 @@ void humans::show_predictions(std::vector<float> link_len,std::vector<float> lin
 }
 
 bool humans::simulate_step(int step_num, double elapsed_time, std::vector<float>& current_pose) {
-    if ((step_num<0)||(step_num>data.size())) return true;
+    if ((step_num<0)||(step_num>data.size()-1)) return true;
     std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> step_seq = data[step_num].get_nominal_seq();
     int i =0;
     for (i=0;i<step_seq.size();i++) {
