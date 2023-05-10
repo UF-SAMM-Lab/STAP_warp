@@ -359,7 +359,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 state->update();
                 if (!state->satisfiesBounds())
                 {
-                  ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
+                  // ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
                   new_poses.push_back(cur_q);
                   new_wpt_times.push_back(nom_time);
                   continue;
@@ -367,7 +367,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
 
                 if (!planning_scene->isStateValid(*state,"edo"))
                 {
-                  ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
+                  // ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
                   new_poses.push_back(cur_q);
                   new_wpt_times.push_back(nom_time);
                   continue;

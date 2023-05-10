@@ -1,6 +1,6 @@
 warp:
   repulsion: 0.02
-  attraction: 0.01
+  attraction: 0.00
   table_repulsion: 0.02
   smooth_steps: 2
   iterations: 2

@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
     human_data->save_full_seq("sequence_human2.csv");
     human_data->generate_full_sequence(14,18,0.0);
     human_data->save_full_seq("sequence_human3.csv");
-    human_data->show_predictions(human_link_lengths,human_link_radii);
+    // human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
     //pre-plan all robot motions
     int h = 0;
@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
         next_h++;
       }
       last_human_time = human_data->pub_model(h,i,-segment_time);
-      human_data->show_sequence();
+      // human_data->show_sequence();
       // std::cout<<"see the motion"<<std::endl;
       // std::cin.ignore();
       ros::Duration(0.5).sleep();
@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
     human_data->reset_motion_done();
     rec->stop();
 
-    ros::Time sim_human_start = ros::Time::now();
+    ros::Time human_start_time = ros::Time::now();
     rec->start();
     while (ros::ok()) {
       if (robot_step>=robot_data.num_segments()) break;
@@ -253,16 +253,18 @@ int main(int argc, char** argv) {
         }
       }
       std::cout<<"robot step:"<<robot_step<<", human step:"<<human_step<<", seq:"<<human_data->full_joint_seq.size()<<std::endl;
-      human_data->update_predictions(human_step,human_quat_pose,robot_step,0.0);
+
+      human_data->update_predictions(human_step,human_quat_pose,robot_step,std::max(0.0,std::min((human_start_time-ros::Time::now()).toSec(),(double)human_data->human_start_delay(human_step))));
       if (simulated) {
-        double elapsed_tm = (ros::Time::now()-sim_human_start).toSec();
+        double elapsed_tm = (ros::Time::now()-human_start_time).toSec();
         if ((human_data->simulate_step(human_step,elapsed_tm,human_quat_pose)) && (robot_step>human_data->human_prior_robot_task(human_step+1))) {
           human_step++;
-          sim_human_start = ros::Time::now();
+          human_start_time = ros::Time::now();
         }
 
       } else if (human_data->is_step_done(human_step)) {
         human_step++;
+        human_start_time = ros::Time::now();
         human_data->reset_motion_done();
       }
       // robot_data.update_prediction();
@@ -273,10 +275,10 @@ int main(int argc, char** argv) {
     while (human_step<human_data->get_num_steps()) {
       ROS_INFO_STREAM_THROTTLE(5,"waiting for the human to finish tasks:"<<human_step);
       if (simulated) {
-        double elapsed_tm = (ros::Time::now()-sim_human_start).toSec();
+        double elapsed_tm = (ros::Time::now()-human_start_time).toSec();
         if ((human_data->simulate_step(human_step,elapsed_tm,human_quat_pose)) && (robot_step>human_data->human_prior_robot_task(human_step+1))) {
           human_step++;
-          sim_human_start = ros::Time::now();
+          human_start_time = ros::Time::now();
         }
 
       } else if (human_data->is_step_done(human_step)) {

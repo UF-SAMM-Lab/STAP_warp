@@ -1,6 +1,6 @@
 test_sequence:
   "1":
-    planning_time: 15.0
+    planning_time: 5.0
     robot_poses:
       length: 13
       "0": [0,0.733,1.098,0,1.310,-0.785]
@@ -12,12 +12,12 @@ test_sequence:
       "6": [0,0,0,0,0,0]
       "7": [3.098,1.080,0.535,0,1.527,0.742]
       "8": [3.098,1.231,0.654,0,1.257,0.743]
-      "9": [0,0.495,1.448,0,1.196,-2.332]
-      "10": [0,0.6,1.504,0,1.035,-2.331]
-      "11": [1.573,0.495,1.449,0,1.195,-2.351]
-      "12": [1.573,0.735,1.516,0,0.888,-2.349]
+      "9": [-0.03,0.429,1.344,0.003,1.368,-0.782]
+      "10": [-0.03,0.602,1.501,0.003,1.038,-0.782]
+      "11": [1.572,0.429,1.344,0,1.368,-0.782]
+      "12": [1.572,0.768,1.509,0,0.865,-0.782]
     robot_sequence:
-      length: 24
+      length: 26
       "0":
         description: "go to start position"
         type: 0
@@ -166,12 +166,12 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "11":
+      "19":
         description: "close gripper"
         type: 1
         after_human_task: -1
         start_delay: 0.0
-      "18":
+      "20":
         description: "raise crankshaft"
         type: 0
         goal: 9
@@ -179,7 +179,7 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "19":
+      "21":
         description: "go to place crankshaft"
         type: 0
         goal: 11
@@ -187,7 +187,7 @@ test_sequence:
         start_delay: 0.0
         pipeline: irrt_avoid
         planner: irrta
-      "20":
+      "22":
         description: "lower crankshaft"
         type: 0
         goal: 12
@@ -195,12 +195,12 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "21":
+      "23":
         description: "open gripper"
         type: 2
         after_human_task: -1
         start_delay: 0.0
-      "22":
+      "24":
         description: "back away"
         type: 0
         goal: 11
@@ -208,7 +208,7 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "23":
+      "25":
         description: "back away from workspace"
         type: 0
         goal: 5

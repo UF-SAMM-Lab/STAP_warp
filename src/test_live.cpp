@@ -633,6 +633,7 @@ int main(int argc, char** argv) {
             mkr.scale.z = 0.2;
             mkr.header.frame_id = "world";
             ros::Time human_start_time = ros::Time::now();
+            ros::Time h_switch_tm = ros::Time::now();
             ros::Rate r1(10);
             while (((rec.joint_pos_vec-goal_vec).norm()>0.001)&&(ros::ok())) {
               std::stringstream str;
@@ -642,11 +643,13 @@ int main(int argc, char** argv) {
                   if ((ros::Time::now()-human_start_time).toSec()>human_data->sim_switch_times[human_step]) {
                     ROS_INFO_STREAM("human step "<<human_step<<" is done");
                     human_step++;
+                    h_switch_tm = ros::Time::now();
                   }
                 }
                 else if (human_data->is_step_done(human_step)) {
                   ROS_INFO_STREAM("human step "<<human_step<<" is done");
                   human_step++;
+                  h_switch_tm = ros::Time::now();
                   human_data->reset_motion_done();
                 }
                 str<<"step:"<<human_step;
@@ -658,7 +661,7 @@ int main(int argc, char** argv) {
                   str<<round(human_stat.data[4]*100)*0.01;
                 }
                 stat_mtx.unlock();
-                human_data->update_predictions(human_step,human_quat_pose,0,0.0);
+                human_data->update_predictions(human_step,human_quat_pose,0,std::max(0.0,std::min((h_switch_tm-ros::Time::now()).toSec(),(double)human_data->human_start_delay(human_step))));
               } else {
                 str<<"Human Task Done!";
                 human_data->full_joint_seq.clear();

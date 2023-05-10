@@ -86,9 +86,14 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     return elapsed_tm-start_tm_in_robot_seq;
 }
 
-void humans::generate_full_sequence(int start_seq, int robot_step, float start_tm_in_robot_seq) {
+void humans::generate_full_sequence(int start_seq, int robot_step, float start_tm_in_robot_seq,bool skip_first_delay) {
     if ((start_seq<0)||(start_seq>=data.size())) return;
-    float elapsed_tm = std::round(10.0*start_tm_in_robot_seq)*0.1;
+    float elapsed_tm = 0.0;
+    if (!skip_first_delay) {
+        elapsed_tm = std::round(10.0*start_tm_in_robot_seq)*0.1;
+    } else {
+        elapsed_tm = 0.0;
+    }
     int s = 0;
     float dt = 0.1;
     std::lock_guard<std::mutex> l(joint_seq_mtx);
@@ -117,7 +122,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     mkr.header.frame_id = "world";
     for (s=start_seq;s<data.size();s++) {
         if (data[s].get_prior_robot_task()>=robot_step) break;
-        if (data[s].get_start_delay()>0.0)  {
+        if ((data[s].get_start_delay()>0.0))  {
             float start_tm = elapsed_tm;
             while (elapsed_tm - start_tm<data[s].get_start_delay()) {
                 if ((elapsed_tm>0) && (data[s].get_seq_size()>0)) {
@@ -163,6 +168,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
             }
         }
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()-1))+dt;
+        skip_first_delay=false;
         // std::cout<<"s:"<<s<<"-"<<full_joint_seq.size()<<std::endl;
     }
     if ((!some_points) && (s>0)) {
@@ -242,7 +248,7 @@ void humans::save_full_seq(std::string file_name) {
             outFile<<full_quat_seq[i].second[j].w()<<","<<full_quat_seq[i].second[j].x()<<","<<full_quat_seq[i].second[j].y()<<","<<full_quat_seq[i].second[j].z()<<",";
         }
         outFile<<"\n";
-        std::cout<<"wrote a line\n";
+        // std::cout<<"wrote a line\n";
     }
     outFile.close();
 }
@@ -342,7 +348,7 @@ void humans::update_predictions(int cur_step, std::vector<float> cur_pose, int r
         data[i].get_predicted_motion(pose);
         data[i].get_last_pose(pose);
     }
-    generate_full_sequence(cur_step, robot_step, current_robot_time);
+    generate_full_sequence(cur_step, robot_step, current_robot_time,true);
 }
 
 

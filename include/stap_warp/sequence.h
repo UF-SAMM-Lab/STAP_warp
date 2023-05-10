@@ -72,7 +72,7 @@ class humans {
         void predicted_motion(void);
         void show_predictions(std::vector<float> link_len,std::vector<float> link_r);
         float pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq);
-        void generate_full_sequence(int start_seq, int robot_step, float start_tm_in_robot_seq);
+        void generate_full_sequence(int start_seq, int robot_step, float start_tm_in_robot_seq,bool skip_first_delay=false);
         float human_start_delay(int human) {
             if ((human<0)||(human>=data.size())) return 0.0;
             return data[human].get_start_delay();
