@@ -24,7 +24,10 @@ class human {
         human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num);
         void get_predicted_motion(std::vector<float> start_pose);
         void show_human(std::vector<float> link_len,std::vector<float> link_r);
-        std::vector<float> get_last_pose(void) {return end_pose;}
+        void get_last_pose(std::vector<float>& pose) {
+            if (sequence.empty()) return;
+            pose = std::get<2>(sequence.back()); 
+        }
         float get_start_delay(void) {return start_delay;}
         int get_prior_robot_task(void) {return prior_robot_task;}
         std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> get_seq(int i);
@@ -49,6 +52,7 @@ class human {
         float get_step_end_time(void) {return std::get<0>(sequence.back());}
         void show_step(int step_num);
         void set_nominal_seq(void) {nom_sequence=sequence;}
+        bool done = false;
     private:
         int id = 0;
         int prior_robot_task = -1;

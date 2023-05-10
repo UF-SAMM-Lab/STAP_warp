@@ -252,6 +252,7 @@ int main(int argc, char** argv) {
           ROS_INFO_STREAM_THROTTLE(10,"waiting to start robot segment "<<robot_step<<" until human step "<<robot_data.get_prior_human_step(robot_step)<<" is done");
         }
       }
+      std::cout<<"robot step:"<<robot_step<<", human step:"<<human_step<<", seq:"<<human_data->full_joint_seq.size()<<std::endl;
       human_data->update_predictions(human_step,human_quat_pose,robot_step,0.0);
       if (simulated) {
         double elapsed_tm = (ros::Time::now()-sim_human_start).toSec();

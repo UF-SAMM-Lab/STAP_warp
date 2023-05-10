@@ -39,7 +39,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     for (s=start_seq;s<data.size();s++) {
         ROS_INFO_STREAM("prior:"<<data[s].get_prior_robot_task()<<",robot_step"<<robot_step);
         if (data[s].get_prior_robot_task()>=robot_step) break;
-        if (data[s].get_start_delay()>0.0)  {
+        if ((data[s].get_start_delay()>0.0)&&(data[s].get_seq_size()>0))  {
             float start_tm = elapsed_tm;
             while (elapsed_tm - start_tm<data[s].get_start_delay()) {
                 if (elapsed_tm>0) {
@@ -70,12 +70,14 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()-1))+dt;
     }
     if ((!some_points) && (s>0)) {
-        stap_warp::joint_seq_elem seq_elem;
-        seq_elem.time = 0.0;
-        ROS_INFO_STREAM("seq time3:"<<seq_elem.time<<","<<s-1);
-        seq_elem.joint_pos = std::get<1>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
-        seq_elem.quats = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
-        seq_msg.sequence.push_back(seq_elem);
+        if ((data[s-1].get_seq_size()>0)) {
+            stap_warp::joint_seq_elem seq_elem;
+            seq_elem.time = 0.0;
+            ROS_INFO_STREAM("seq time3:"<<seq_elem.time<<","<<s-1);
+            seq_elem.joint_pos = std::get<1>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+            seq_elem.quats = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+            seq_msg.sequence.push_back(seq_elem);
+        }
     }
     human_model_pub.publish(seq_msg);
     std::lock_guard<std::mutex> l(joint_seq_mtx);
@@ -118,7 +120,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
         if (data[s].get_start_delay()>0.0)  {
             float start_tm = elapsed_tm;
             while (elapsed_tm - start_tm<data[s].get_start_delay()) {
-                if (elapsed_tm>0) {
+                if ((elapsed_tm>0) && (data[s].get_seq_size()>0)) {
                     full_joint_seq.emplace_back(elapsed_tm,std::get<3>(data[s].get_seq(0)));
                     Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s].get_seq(0));
                     std::vector<Eigen::Vector3f> tmp_jnts;
@@ -161,28 +163,31 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
             }
         }
         elapsed_tm += std::get<0>(data[s].get_seq(data[s].get_seq_size()-1))+dt;
+        // std::cout<<"s:"<<s<<"-"<<full_joint_seq.size()<<std::endl;
     }
     if ((!some_points) && (s>0)) {
-        full_joint_seq.emplace_back(0.0,std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1)));
-        Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
-        // std::cout<<"test2:"<<tmp_jnts_mat.col(5).transpose()<<":"<<tmp_jnts_mat.col(8).transpose()<<std::endl;
-        geometry_msgs::Point pt;
-        pt.x = tmp_jnts_mat(0,5);
-        pt.y = tmp_jnts_mat(1,5);
-        pt.z = tmp_jnts_mat(2,5);
-        mkr.points.push_back(pt);
-        pt.x = tmp_jnts_mat(0,8);
-        pt.y = tmp_jnts_mat(1,8);
-        pt.z = tmp_jnts_mat(2,8);
-        mkr.points.push_back(pt);
-        std::vector<Eigen::Vector3f> tmp_jnts;
-        for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
-        full_joint_seq_f.emplace_back(0.0,tmp_jnts);
-        std::vector<Eigen::Quaternionf> tmp_quats;
-        std::vector<float> tmp_quat_vec = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
-        for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
-        full_quat_seq.emplace_back(0.0,tmp_quats);
-        ROS_INFO_STREAM("no points:"<<s-1);
+        if (data[s-1].get_seq_size()>0) {
+            full_joint_seq.emplace_back(0.0,std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1)));
+            Eigen::MatrixXd tmp_jnts_mat = std::get<3>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+            // std::cout<<"test2:"<<tmp_jnts_mat.col(5).transpose()<<":"<<tmp_jnts_mat.col(8).transpose()<<std::endl;
+            geometry_msgs::Point pt;
+            pt.x = tmp_jnts_mat(0,5);
+            pt.y = tmp_jnts_mat(1,5);
+            pt.z = tmp_jnts_mat(2,5);
+            mkr.points.push_back(pt);
+            pt.x = tmp_jnts_mat(0,8);
+            pt.y = tmp_jnts_mat(1,8);
+            pt.z = tmp_jnts_mat(2,8);
+            mkr.points.push_back(pt);
+            std::vector<Eigen::Vector3f> tmp_jnts;
+            for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
+            full_joint_seq_f.emplace_back(0.0,tmp_jnts);
+            std::vector<Eigen::Quaternionf> tmp_quats;
+            std::vector<float> tmp_quat_vec = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
+            for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
+            full_quat_seq.emplace_back(0.0,tmp_quats);
+            ROS_INFO_STREAM("no points:"<<s-1);
+        }
     }
     wrist_trace_pub.publish(mkr);
 }
@@ -247,7 +252,7 @@ void humans::predicted_motion(void) {
     for (int i=0;i<data.size();i++) {
         data[i].get_predicted_motion(pose);
         data[i].set_nominal_seq();
-        pose = data[i].get_last_pose();
+        data[i].get_last_pose(pose);
     }
 }
 
@@ -288,11 +293,13 @@ bool humans::simulate_step(int step_num, double elapsed_time, std::vector<float>
     current_pose = std::get<2>(step_seq[i]);
     // std::cout<<i<<","<<step_seq.size()<<std::endl;
     data[step_num].show_step(i);
-    return elapsed_time>=data[step_num].get_step_end_time();
+    data[step_num].done = elapsed_time>=data[step_num].get_step_end_time();
+    return data[step_num].done;
 }
 
 bool humans::is_step_done(int step) {
     if ((step<0)||(step>data.size())) return false;
+    if (data[step].done) return true;
     if (!data[step].check_pos) return true;
     stap_warp::human_motion_done srv;
     if (data[step].both_arms) {
@@ -308,11 +315,13 @@ bool humans::is_step_done(int step) {
         if (human_done_srv.call(srv)) {
             right_arm_done=srv.response.done;
         }
+        data[step].done = left_arm_done && right_arm_done;
         return left_arm_done && right_arm_done;
     } else {
         srv.request.reach_target = data[step].get_tgt();
         srv.request.active_hand = !data[step].arm_right;
         if (human_done_srv.call(srv)) {
+            data[step].done = srv.response.done;
             return srv.response.done;
         }
     }
@@ -329,8 +338,9 @@ void humans::reset_motion_done(void) {
 void humans::update_predictions(int cur_step, std::vector<float> cur_pose, int robot_step, double current_robot_time) {
     std::vector<float> pose = cur_pose;
     for (int i=cur_step;i<data.size();i++) {
+        if (data[i].get_prior_robot_task()>=robot_step) break;
         data[i].get_predicted_motion(pose);
-        pose = data[i].get_last_pose();
+        data[i].get_last_pose(pose);
     }
     generate_full_sequence(cur_step, robot_step, current_robot_time);
 }
@@ -460,13 +470,14 @@ void human::show_step(int step_num) {
 }
 
 void human::get_predicted_motion(std::vector<float> start_pose) {
+    sequence.clear();
+    if (done) return;
     if (!both_arms) {
         stap_warp::human_prediction srv;
         srv.request.start_pose = start_pose;
         srv.request.reach_target = reach_target;
         srv.request.active_hand = !arm_right;
         srv.request.dt = prediction_dt;
-        sequence.clear();
         if (predictor->call(srv)) {
             int n_cols = srv.response.pose_sequence.layout.dim[0].size;
             // ROS_INFO_STREAM(description<<" ncols:"<<n_cols);
@@ -736,7 +747,7 @@ void human::show_human(std::vector<float> link_len,std::vector<float> link_r) {
 }
 
 std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd> human::get_seq(int i) {
-    assert(!sequence.empty());
+    if (sequence.empty()) return std::make_tuple(0.0,std::vector<float>(),std::vector<float>(),Eigen::MatrixXd());
     return sequence[i];
 }
 int human::get_seq_size(void) {
