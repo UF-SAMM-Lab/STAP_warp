@@ -25,6 +25,7 @@
   <build_depend>uf_edo_safety</build_depend>
   <build_depend>velocity_scaling_iso15066</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>jsk_rviz_plugins</build_depend>
   <build_export_depend>graph_core</build_export_depend>
   <build_export_depend>moveit_core</build_export_depend>
   <build_export_depend>moveit_ros_planning</build_export_depend>
@@ -41,6 +42,7 @@
   <build_export_depend>uf_edo_safety</build_export_depend>
   <build_export_depend>velocity_scaling_iso15066</build_export_depend>
   <build_export_depend>message_generation</build_export_depend>
+  <build_export_depend>jsk_rviz_plugins</build_export_depend>
   <exec_depend>graph_core</exec_depend>
   <exec_depend>moveit_core</exec_depend>
   <exec_depend>moveit_ros_planning</exec_depend>
@@ -57,4 +59,5 @@
   <exec_depend>uf_edo_safety</exec_depend>
   <exec_depend>velocity_scaling_iso15066</exec_depend>
   <exec_depend>message_generation</exec_depend>
+  <exec_depend>jsk_rviz_plugins</exec_depend>
 </package>

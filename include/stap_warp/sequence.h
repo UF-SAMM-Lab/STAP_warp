@@ -17,8 +17,16 @@
 #include <stap_warp/stap_warp.h>
 #include <stap_warp/human_motion_done.h>
 #include <stap_warp/human_motion_reset.h>
+#include <jsk_rviz_plugins/OverlayText.h>
+#include <actionlib/client/simple_action_client.h>
+#include <moveit_msgs/MoveGroupAction.h>
+#include <actionlib_msgs/GoalID.h>
+#include <control_msgs/FollowJointTrajectoryActionGoal.h>
 
 namespace stap_test {
+
+jsk_rviz_plugins::OverlayText gen_overlay_text(std::string txt);
+
 class human {
     public:
         human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num);
@@ -49,7 +57,7 @@ class human {
         std::vector<float> reach_target_left;
         std::vector<float> reach_target_right;
         std::vector<float> reach_target;
-        float get_step_end_time(void) {return std::get<0>(sequence.back());}
+        float get_step_end_time(void) {return std::get<0>(nom_sequence.back());}
         void show_step(int step_num);
         void set_nominal_seq(void) {nom_sequence=sequence;}
         bool done = false;
@@ -101,6 +109,7 @@ class humans {
         }
         bool simulate_step(int step_num, double elapsed_time, std::vector<float>& current_pose);
         void show_reach_tgt(int step_num);
+        void pub_descrition(int step_num);
     private:
         ros::Publisher human_model_pub;
         int num_steps = 0;
@@ -128,12 +137,14 @@ class robot_segment {
         std::string pipeline;
         std::string planner;
         std::string description = "";
+        double get_gripper_pct() {return gripper_pct;}
     private:
         int id = 0;
         int type = 0;
         int prior_human_task = -1;
         double start_delay = 0.0;
         int goal_id;
+        double gripper_pct=0.0;
 };
 class robot_sequence {
     public:
@@ -171,5 +182,12 @@ class robot_sequence {
         std::thread segment_thread;
         bool segment_active = false;
         std::shared_ptr<ros::Publisher> pub_txt;
+        std::mutex goal_mtx;
+        std::string goal_id;
+        ros::Subscriber sub_goal;
+        ros::Publisher pub_cancel_traj;
+        void goal_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg);
+        actionlib_msgs::GoalID goal_id_msg;
+        ros::Publisher centroids_pub;
 };
 }

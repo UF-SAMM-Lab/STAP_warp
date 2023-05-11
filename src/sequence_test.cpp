@@ -76,7 +76,9 @@ int main(int argc, char** argv) {
     ros::Subscriber sub_goal = nh.subscribe<control_msgs::FollowJointTrajectoryActionGoal>(ctrl_ns+"/follow_joint_trajectory/goal",1,goal_callback);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
     ros::Publisher pub_pause_tracking = nh.advertise<std_msgs::Bool>("/pause_tracking",1);
-    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
+    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<jsk_rviz_plugins::OverlayText>("stap_description", 0,false));
+    pub_txt->publish(stap_test::gen_overlay_text("this is some text"));
+    
     //do a test with no obsctacles:
     std::vector<double> start_joint;
     std::vector<double> goal_joint;
@@ -184,7 +186,7 @@ int main(int argc, char** argv) {
     human_data->save_full_seq("sequence_human2.csv");
     human_data->generate_full_sequence(14,18,0.0);
     human_data->save_full_seq("sequence_human3.csv");
-    // human_data->show_predictions(human_link_lengths,human_link_radii);
+    human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
     //pre-plan all robot motions
     int h = 0;
@@ -199,7 +201,6 @@ int main(int argc, char** argv) {
     std::vector<double> last_waypoint = move_group.getCurrentJointValues();
     //plan robot segment nominal paths based on nominal predictions
     for (int i=0;i<robot_data.num_segments();i++) {
-
       ROS_INFO_STREAM("next h:"<<next_h);
       if (next_h<human_data->get_num_steps()) {
         if (i>human_data->human_prior_robot_task(next_h)) {
@@ -254,6 +255,7 @@ int main(int argc, char** argv) {
       }
       std::cout<<"robot step:"<<robot_step<<", human step:"<<human_step<<", seq:"<<human_data->full_joint_seq.size()<<std::endl;
 
+      human_data->pub_descrition(human_step);
       human_data->update_predictions(human_step,human_quat_pose,robot_step,std::max(0.0,std::min((human_start_time-ros::Time::now()).toSec(),(double)human_data->human_start_delay(human_step))));
       if (simulated) {
         double elapsed_tm = (ros::Time::now()-human_start_time).toSec();
@@ -262,7 +264,7 @@ int main(int argc, char** argv) {
           human_start_time = ros::Time::now();
         }
 
-      } else if (human_data->is_step_done(human_step)) {
+      } else if ((human_data->is_step_done(human_step)&&((ros::Time::now()-human_start_time).toSec()>0.8*human_data->get_step_end_time(human_step)))) {
         human_step++;
         human_start_time = ros::Time::now();
         human_data->reset_motion_done();
@@ -286,7 +288,7 @@ int main(int argc, char** argv) {
         human_data->reset_motion_done();
       }
       if (human_step>=human_data->get_num_steps()) break;
-      ros::Duration(0.1).sleep();
+      ros::Duration(0.01).sleep();
     }
     ROS_INFO("done!");
 

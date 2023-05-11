@@ -193,6 +193,12 @@ int main(int argc, char** argv) {
     for (int i = 0;i<6;i++) {
       start_joint[i] *= 3.14/180;
     }
+    bool use_warp = true;
+    nh.getParam("/use_warp",use_warp);
+    nh.getParam("/tests/"+std::to_string(test_num)+"/robot_start", start_joint);
+    for (int i = 0;i<6;i++) {
+      start_joint[i] *= 3.14/180;
+    }
     robot_state::RobotStatePtr state;
     state = move_group.getCurrentState();
     state->setVariablePositions(start_joint);
@@ -670,7 +676,9 @@ int main(int argc, char** argv) {
               pub_human_status.publish(mkr);
               human_data->show_reach_tgt(human_step);
               //std::max((ros::Time::now()-p_start).toSec(),0.0);
-              stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
+              if (use_warp) {
+                stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
+              }
               // r1.sleep();
             }
             mkr.text = "Robot HRI segment is done!";

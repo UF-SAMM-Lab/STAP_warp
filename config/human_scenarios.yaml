@@ -4,7 +4,7 @@ test_sequence:
       length: 3
       description: "get engine block at left"
       show_human_rate: 10
-      simulated_switch_times: [10.0,14.0,17.0,22.0] #[8.0,12.0,15.0,20.0]
+      simulated_switch_times: [12.0,16.0,19.0,23.0] #[8.0,12.0,15.0,20.0]
       "0":
         description: "reach for the block"
         after_robot_task: -1
@@ -37,7 +37,7 @@ test_sequence:
       length: 3
       description: "bring piston to engine and then put back"
       show_human_rate: 10
-      simulated_switch_times: [8.0,15.0,22] #[5.0,13.0,20]
+      simulated_switch_times: [2.0,10.0,17] #[5.0,13.0,20]
       "0":
         description: "reach for the piston"
         after_robot_task: -1
@@ -84,7 +84,7 @@ test_sequence:
         description: "separate arms"
         after_robot_task: -1
         after_human_task: -1
-        start_delay: 0.0
+        start_delay: 1.0
         reach_target_left: [0.1,0.3,0.0]
         reach_target_right: [-0.1,0.3,1.0]
         end_delay: 0.0
@@ -120,7 +120,7 @@ test_sequence:
         end_delay: 0.0
         arm: "both"
         check_pos: true
-      simulated_switch_times: [3.0,7.0,12.0,17.0,22.0] #[1.0,5.0,10.0,15.0,20.0]
+      simulated_switch_times: [1.0,5.0,10.0,15.0,20.0] # [0.0,3.0,8.0,13.0,18.0] #[1.0,5.0,10.0,15.0,20.0]
       # "4":
       #   description: "separate arms"
       #   after_robot_task: -1

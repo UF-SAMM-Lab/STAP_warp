@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib_msgs
   velocity_scaling_iso15066
   message_generation
+  jsk_rviz_plugins
 )
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
