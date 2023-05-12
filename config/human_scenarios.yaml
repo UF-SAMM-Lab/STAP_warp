@@ -37,7 +37,7 @@ test_sequence:
       length: 3
       description: "bring piston to engine and then put back"
       show_human_rate: 10
-      simulated_switch_times: [2.0,10.0,17] #[5.0,13.0,20]
+      simulated_switch_times: [5.0,13.0,20] #[2.0,10.0,17] #[5.0,13.0,20]
       "0":
         description: "reach for the piston"
         after_robot_task: -1

@@ -65,6 +65,7 @@ class humanCollisionObjects {
         double elapsed_time;
         void update_timer(const ros::TimerEvent& event);
         bool pause_live = false;
+        moveit_msgs::CollisionObject createHeadCollisionObject(Eigen::Vector3f pos, double radius, std::string id);
     public:
         void setJointLocations(std::vector<Eigen::Vector3f> joints);
         humanCollisionObjects(ros::NodeHandle node_handle, const planning_scene::PlanningScenePtr &planning_scene_ptr, std::vector<double> lengths, std::vector<double> radii, double min_dist);

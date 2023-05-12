@@ -911,6 +911,8 @@ void robot_sequence::segment_thread_fn(int seg_num) {
             move_group.setPlanningTime(0.5);
             move_group.setStartStateToCurrentState();
             move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
+
+            centroids_pub.publish(rec->pose_msg);
             moveit::planning_interface::MoveGroupInterface::Plan plan;
             bool plan_success = false;
             while (!plan_success) {
