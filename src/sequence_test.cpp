@@ -175,8 +175,8 @@ int main(int argc, char** argv) {
     grav << 0, 0, -9.806;
 
     rosdyn::ChainPtr chain = rosdyn::createChain(urdf_model, base_frame_, tool_frame, grav);
-    std::string log_file= ros::package::getPath("stap_warp")+"/data/sequence_sim.csv";
-    std::string log_file2= ros::package::getPath("stap_warp")+"/data/sequence_solver_perf_sim.csv";
+    std::string log_file= ros::package::getPath("stap_warp")+"/data/sequence.csv";
+    std::string log_file2= ros::package::getPath("stap_warp")+"/data/sequence_solver_perf.csv";
     std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
     stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr,pub_txt);
     human_data->predicted_motion();
@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
           ROS_INFO_STREAM_THROTTLE(10,"waiting to start robot segment "<<robot_step<<" until human step "<<robot_data.get_prior_human_step(robot_step)<<" is done");
         }
       }
-      std::cout<<"robot step:"<<robot_step<<", human step:"<<human_step<<", seq:"<<human_data->full_joint_seq.size()<<std::endl;
+      // std::cout<<"robot step:"<<robot_step<<", human step:"<<human_step<<", seq:"<<human_data->full_joint_seq.size()<<std::endl;
 
       human_data->pub_descrition(human_step);
       human_data->update_predictions(human_step,human_quat_pose,robot_step,std::max(0.0,std::min((human_start_time-ros::Time::now()).toSec(),(double)human_data->human_start_delay(human_step))));

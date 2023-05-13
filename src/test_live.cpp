@@ -6,7 +6,7 @@
 #include <control_msgs/FollowJointTrajectoryActionGoal.h>
 #include <stap_warp/sequence.h>
 
-std::vector<Eigen::VectorXf> pt_cloud;
+std::vector<Eigen::Vector3f> pt_cloud;
 std::mutex mtx;
 std::mutex goal_mtx;
 std::string goal_id;
@@ -21,7 +21,7 @@ void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx);
     pt_cloud.clear();
     for (int i=0;i<msg->points.size();i++) {
-        pt_cloud.push_back(Eigen::Vector3f(msg->points[i].x,msg->points[i].y,msg->points[i].z));
+        pt_cloud.emplace_back(msg->points[i].x,msg->points[i].y,msg->points[i].z);
     }
 }
 
@@ -283,16 +283,47 @@ int main(int argc, char** argv) {
     if (planner_id=="multigoal_ssm_test") {
       test_skeleton->publish_pts(avoid_pts);
       ros::Duration(2.0).sleep();
-      if (0) {
+      if (1) {
         for (int i =0; i < int(test_skeleton->end_time_*10);i++) {
-          std_msgs::Float32 time_disp;
-          time_disp.data = float(i/10);
-          model_pub.publish(time_disp);
-          ros::Duration(0.01).sleep();
-          std::cout<<"pts in cloud:"<<pt_cloud.size()<<std::endl;
-          mtx.lock();
-          human_occupany.set_occupancy(pt_cloud);
-          mtx.unlock();
+          // std_msgs::Float32 time_disp;
+          // time_disp.data = float(i/10);
+          // model_pub.publish(time_disp);
+          // ros::Duration(0.05).sleep();
+          // std::cout<<"pts in cloud:"<<pt_cloud.size()<<std::endl;
+          // mtx.lock();
+          // human_occupany.set_occupancy(pt_cloud);
+          // mtx.unlock();
+          geometry_msgs::PoseArray poses = test_skeleton->get_pose_at_time(std::max(double(i/10.0),0.0));
+          std::vector<Eigen::Vector3f> pts;
+          for (int i=0;i<poses.poses.size();i++) pts.emplace_back(poses.poses[i].position.x,poses.poses[i].position.y,poses.poses[i].position.z);
+          geometry_msgs::Pose p;
+          if (pts.size()>1) {
+            p.position.x = 0.5*(poses.poses[0].position.x+poses.poses[1].position.x);
+            p.position.y = 0.5*(poses.poses[0].position.y+poses.poses[1].position.y);
+            p.position.z = 0.5*(poses.poses[0].position.z+poses.poses[1].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+            p.position.x = 0.5*(poses.poses[1].position.x+poses.poses[2].position.x);
+            p.position.y = 0.5*(poses.poses[1].position.y+poses.poses[2].position.y);
+            p.position.z = 0.5*(poses.poses[1].position.z+poses.poses[2].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+            p.position.x = 0.5*(poses.poses[3].position.x+poses.poses[4].position.x);
+            p.position.y = 0.5*(poses.poses[3].position.y+poses.poses[4].position.y);
+            p.position.z = 0.5*(poses.poses[3].position.z+poses.poses[4].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+            p.position.x = 0.5*(poses.poses[5].position.x+poses.poses[4].position.x);
+            p.position.y = 0.5*(poses.poses[5].position.y+poses.poses[4].position.y);
+            p.position.z = 0.5*(poses.poses[5].position.z+poses.poses[4].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+            p.position.x = 0.5*(poses.poses[6].position.x+poses.poses[7].position.x);
+            p.position.y = 0.5*(poses.poses[6].position.y+poses.poses[7].position.y);
+            p.position.z = 0.5*(poses.poses[6].position.z+poses.poses[7].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+            p.position.x = 0.5*(poses.poses[8].position.x+poses.poses[7].position.x);
+            p.position.y = 0.5*(poses.poses[8].position.y+poses.poses[7].position.y);
+            p.position.z = 0.5*(poses.poses[8].position.z+poses.poses[7].position.z);
+            pts.emplace_back(p.position.x,p.position.y,p.position.z);
+          }
+          human_occupany.set_occupancy(pts);
         }
       } else {
         model_all_pub.publish(show_all);
@@ -364,8 +395,10 @@ int main(int argc, char** argv) {
 
     for (int test_num=0;test_num<num_tests;test_num++) {
       std_msgs::Bool pause_track_msg;
-      pause_track_msg.data = true;
-      pub_pause_tracking.publish(pause_track_msg);
+      if (planning_pipeline=="irrt_avoid") {
+        pause_track_msg.data = true;
+        pub_pause_tracking.publish(pause_track_msg);
+      }
       std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
       test_skeleton->publish_pts(std::vector<Eigen::VectorXf>());
       // human_occupany.set_occupancy(std::vector<Eigen::VectorXf>());
@@ -466,7 +499,8 @@ int main(int argc, char** argv) {
         ros::Duration(1.0).sleep();
       }
       co_human.removeHumans();
-      if (planner_id!="dirrt_paper") co_human.start_live_obs();
+      // if ((planner_id!="dirrt_paper")&&(planner_id!="multigoal_ssm_test")) co_human.start_live_obs();
+      co_human.start_live_obs();
       ros::Time p_start = ros::Time::now();
       for (int i=0;i<plans.size();i++) {
         if (i==1) {
@@ -522,8 +556,26 @@ int main(int argc, char** argv) {
             if (rec.joint_vel_vec.cwiseAbs().sum()>0.01) last_motion_time = ros::Time::now();
             replan_needed = ((ros::Time::now()-last_motion_time).toSec()>1.0);
             //if stopped replan
-          
-            if (planner_id=="dirrt_paper") {
+            if (planner_id=="multigoal_ssm_test") {
+              std::vector<Eigen::Vector3f> pts = rec.live_human_points;
+              Eigen::Vector3f p;
+              if (poses.poses.size()>1) {
+                p = 0.5*(pts[0]+pts[1]);
+                pts.push_back(p);
+                p = 0.5*(pts[2]+pts[1]);
+                pts.push_back(p);
+                p = 0.5*(pts[3]+pts[4]);
+                pts.push_back(p);
+                p = 0.5*(pts[4]+pts[5]);
+                pts.push_back(p);
+                p = 0.5*(pts[6]+pts[7]);
+                pts.push_back(p);
+                p = 0.5*(pts[7]+pts[8]);
+                pts.push_back(p);
+              }
+              human_occupany.set_occupancy(pts);
+            }
+            if ((planner_id=="dirrt_paper")||(planner_id=="multigoal_ssm_test")) {
               if (((((ros::Time::now()-prev_plan_time).toSec()>1.0) && (rec.spd_scale<50)) && (rec.spd_scale-prev_spd_scale<=0))||replan_needed) {
                 move_group.stop();
                 int t=0;

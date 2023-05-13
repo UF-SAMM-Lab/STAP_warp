@@ -178,7 +178,7 @@ void data_recorder::skeleton_callback(const std_msgs::Float32MultiArray::ConstPt
     std::lock_guard<std::mutex> lck2(skel_pts_mtx);
     live_human_points.clear();
     for (int i=0;i<int(double(camera_keypoints.size())/3.0);i++) {
-        live_human_points.push_back(Eigen::Vector3f(camera_keypoints[i*3],camera_keypoints[i*3+1],camera_keypoints[i*3+2]));
+        live_human_points.emplace_back(camera_keypoints[i*3],camera_keypoints[i*3+1],camera_keypoints[i*3+2]);
     }
 }
 
@@ -431,7 +431,7 @@ human_occupancy_helper::human_occupancy_helper(ros::NodeHandle nh):nh_(nh) {
     unsigned int npnt=50;
     grid_ = std::make_shared<human_occupancy::OccupancyGrid>(workspace_lb,workspace_ub,npnt);
 }
-void human_occupancy_helper::set_occupancy(std::vector<Eigen::VectorXf> avoid_pts) {
+void human_occupancy_helper::set_occupancy(std::vector<Eigen::Vector3f> avoid_pts) {
     visualization_msgs::Marker obs_pts;
     pc_pose_array.poses.clear();
     pc_pose_array.header.frame_id="world";

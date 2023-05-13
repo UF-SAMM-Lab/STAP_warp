@@ -192,7 +192,7 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
             std::vector<float> tmp_quat_vec = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
             for (int q=0;q<7;q++) tmp_quats.emplace_back(tmp_quat_vec[q*4+3],tmp_quat_vec[q*4+4],tmp_quat_vec[q*4+5],tmp_quat_vec[q*4+6]);
             full_quat_seq.emplace_back(0.0,tmp_quats);
-            ROS_INFO_STREAM("no points:"<<s-1);
+            // ROS_INFO_STREAM("no points:"<<s-1);
         }
     }
     wrist_trace_pub.publish(mkr);
@@ -890,6 +890,7 @@ void robot_sequence::goal_callback(const control_msgs::FollowJointTrajectoryActi
 
 void robot_sequence::segment_thread_fn(int seg_num) {
     segment_active = true;
+    rec->plan_time = data[seg_num].planned_time;
     if ((seg_num<0)||(seg_num>data.size())) return;
     if (data[seg_num].get_type()==0) {
         if (data[seg_num].pipeline=="irrt_avoid") {
@@ -978,7 +979,15 @@ void robot_sequence::segment_thread_fn(int seg_num) {
                 prev_spd_scale = rec->spd_scale;
                 ros::Duration(0.01).sleep();
             }
-        } 
+        } else {
+            move_group.asyncExecute(data[seg_num].plan);
+            Eigen::VectorXd goal_vec(6);
+            for (int i=0;i<6;i++) goal_vec[i] = data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions[i];
+            ros::Duration(0.1).sleep();
+            while ((rec->joint_pos_vec-goal_vec).norm()>0.001) {
+                ros::Duration(0.01).sleep();
+            }
+        }
     }
     else if (data[seg_num].get_type()==1) {
         //close gripper
