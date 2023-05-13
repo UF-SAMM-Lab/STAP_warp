@@ -118,7 +118,7 @@ class human_publisher {
 class human_occupancy_helper {
   public:
   human_occupancy_helper(ros::NodeHandle nh);
-  void set_occupancy(std::vector<Eigen::VectorXf> avoid_pts);
+  void set_occupancy(std::vector<Eigen::Vector3f> avoid_pts);
   std::shared_ptr<avoidance_intervals::skeleton> skel;
   protected:
   human_occupancy::OccupancyGridPtr grid_;

@@ -15,11 +15,11 @@ test_sequence:
       "9": [-0.03,0.429,1.344,0.003,1.368,-0.782]
       "10": [-0.03,0.602,1.501,0.003,1.038,-0.782]
       "11": [1.326,0.759,0.869,0,1.514,-2.604]
-      "12": [1.326,1.021,1.067,0,1.054,-2.604]
+      "12": [1.326,0.995,1.070,0,1.077,-2.604]
     robot_sequence:
       length: 27
-      nonrestrictive_pipeline: dirrt #irrt_avoid
-      nonrestrictive_planner: dirrt_paper #irrta
+      nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt
+      nonrestrictive_planner: irrta #irrta, dirrt_paper
       "0":
         description: "open gripper"
         type: 2

@@ -6,7 +6,7 @@
 #include <actionlib_msgs/GoalID.h>
 #include <control_msgs/FollowJointTrajectoryActionGoal.h>
 
-std::vector<Eigen::VectorXf> pt_cloud;
+std::vector<Eigen::Vector3f> pt_cloud;
 std::mutex mtx;
 std::mutex goal_mtx;
 std::string goal_id;
@@ -15,7 +15,7 @@ void disp_sub_callback(const visualization_msgs::Marker::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx);
     pt_cloud.clear();
     for (int i=0;i<msg->points.size();i++) {
-        pt_cloud.push_back(Eigen::Vector3f(msg->points[i].x,msg->points[i].y,msg->points[i].z));
+        pt_cloud.emplace_back(msg->points[i].x,msg->points[i].y,msg->points[i].z);
     }
 }
 
