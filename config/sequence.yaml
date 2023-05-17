@@ -18,8 +18,8 @@ test_sequence:
       "12": [1.326,0.995,1.070,0,1.077,-2.604]
     robot_sequence:
       length: 27
-      nonrestrictive_pipeline: dirrt #irrt_avoid, dirrt, dirrt
-      nonrestrictive_planner: multigoal_ssm_test #irrta, dirrt_paper, multigoal_ssm_test
+      nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt, dirrt
+      nonrestrictive_planner: irrta #irrta, dirrt_paper, multigoal_ssm_test
       "0":
         description: "open gripper"
         type: 2
