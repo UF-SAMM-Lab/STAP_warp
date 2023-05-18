@@ -141,3 +141,18 @@ test_sequence:
       #   end_delay: 0.0
       #   arm: "both"
       #   check_pos: true
+  "3":
+    human_sequence:
+      length: 1
+      description: "bring piston to engine and then put back"
+      show_human_rate: 10
+      simulated_switch_times: [5.0,13.0,20] #[2.0,10.0,17] #[5.0,13.0,20]
+      "0":
+        description: "reach for the piston"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
