@@ -189,5 +189,8 @@ class robot_sequence {
         void goal_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg);
         actionlib_msgs::GoalID goal_id_msg;
         ros::Publisher centroids_pub;
+        ros::Publisher pc_pub;
+        human_occupancy::OccupancyGridPtr grid_;
+        void set_occupancy(std::vector<Eigen::Vector3f> avoid_pts);
 };
 }

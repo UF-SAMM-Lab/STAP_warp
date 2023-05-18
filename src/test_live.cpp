@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     ros::Publisher pub_pause_tracking = nh.advertise<std_msgs::Bool>("/pause_tracking",1);
     ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
     ros::Subscriber sub_human_done = nh.subscribe<std_msgs::Float32MultiArray>("/human_task_status",1,human_done_cb);
-    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::Marker>("stap_description", 0,false));
+    std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<jsk_rviz_plugins::OverlayText>("stap_description", 0,false));
     std::string plan_group = "manipulator";
     if (!nh.getParam("/plan_group",plan_group))
     {
@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
     human_occupancy_helper human_occupany(nh);
     ros::Subscriber disp_sub = nh.subscribe<visualization_msgs::Marker>("/human_markers",1,disp_sub_callback);
   
-    if (planner_id=="multigoal_ssm_test") {
+    if ((planner_id=="multigoal_ssm_test")||(planner_id=="prob_hamp_test")) {
       test_skeleton->publish_pts(avoid_pts);
       ros::Duration(2.0).sleep();
       if (1) {
@@ -556,7 +556,7 @@ int main(int argc, char** argv) {
             if (rec.joint_vel_vec.cwiseAbs().sum()>0.01) last_motion_time = ros::Time::now();
             replan_needed = ((ros::Time::now()-last_motion_time).toSec()>1.0);
             //if stopped replan
-            if (planner_id=="multigoal_ssm_test") {
+            if ((planner_id=="multigoal_ssm_test")||(planner_id=="prob_hamp_test")){
               std::vector<Eigen::Vector3f> pts = rec.live_human_points;
               Eigen::Vector3f p;
               if (poses.poses.size()>1) {
@@ -694,6 +694,25 @@ int main(int argc, char** argv) {
             ros::Time h_switch_tm = ros::Time::now();
             ros::Rate r1(10);
             while (((rec.joint_pos_vec-goal_vec).norm()>0.001)&&(ros::ok())) {
+              if ((planner_id=="multigoal_ssm_test")||(planner_id=="prob_hamp_test")){
+                std::vector<Eigen::Vector3f> pts = rec.live_human_points;
+                Eigen::Vector3f p;
+                if (poses.poses.size()>1) {
+                  p = 0.5*(pts[0]+pts[1]);
+                  pts.push_back(p);
+                  p = 0.5*(pts[2]+pts[1]);
+                  pts.push_back(p);
+                  p = 0.5*(pts[3]+pts[4]);
+                  pts.push_back(p);
+                  p = 0.5*(pts[4]+pts[5]);
+                  pts.push_back(p);
+                  p = 0.5*(pts[6]+pts[7]);
+                  pts.push_back(p);
+                  p = 0.5*(pts[7]+pts[8]);
+                  pts.push_back(p);
+                }
+                human_occupany.set_occupancy(pts);
+              }
               std::stringstream str;
               if (human_step<human_data->get_num_steps()) {
                 if (simulate_human) {
@@ -725,7 +744,7 @@ int main(int argc, char** argv) {
                 human_data->full_joint_seq.clear();
               }
               mkr.text = str.str();
-              pub_human_status.publish(mkr);
+              pub_txt->publish(stap_test::gen_overlay_text(mkr.text));
               human_data->show_reach_tgt(human_step);
               //std::max((ros::Time::now()-p_start).toSec(),0.0);
               if (use_warp) {
@@ -734,7 +753,7 @@ int main(int argc, char** argv) {
               // r1.sleep();
             }
             mkr.text = "Robot HRI segment is done!";
-            pub_human_status.publish(mkr);
+            pub_txt->publish(stap_test::gen_overlay_text(mkr.text));
           } else {
             move_group.execute(plans[i]);
           }

@@ -104,10 +104,10 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
     visualization_msgs::Marker mkr;
     mkr.id=106;
     mkr.lifetime = ros::Duration(0.0);
-    mkr.type=mkr.SPHERE_LIST;
+    mkr.type=mkr.LINE_STRIP;
     mkr.color.r=1.0;
     mkr.color.b=0.0;
-    mkr.color.g=1.0;
+    mkr.color.g=0.0;
     mkr.color.a=1.0;
     mkr.pose.position.x = 0;
     mkr.pose.position.y = 0;
@@ -150,11 +150,11 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
                 pt.x = tmp_jnts_mat(0,5);
                 pt.y = tmp_jnts_mat(1,5);
                 pt.z = tmp_jnts_mat(2,5);
-                // std::cout<<pt<<std::endl;
-                mkr.points.push_back(pt);
-                pt.x = tmp_jnts_mat(0,8);
-                pt.y = tmp_jnts_mat(1,8);
-                pt.z = tmp_jnts_mat(2,8);
+                // // std::cout<<pt<<std::endl;
+                // mkr.points.push_back(pt);
+                // pt.x = tmp_jnts_mat(0,8);
+                // pt.y = tmp_jnts_mat(1,8);
+                // pt.z = tmp_jnts_mat(2,8);
                 mkr.points.push_back(pt);
                 // std::cout<<pt<<std::endl;
                 std::vector<Eigen::Vector3f> tmp_jnts;
@@ -180,10 +180,10 @@ void humans::generate_full_sequence(int start_seq, int robot_step, float start_t
             pt.x = tmp_jnts_mat(0,5);
             pt.y = tmp_jnts_mat(1,5);
             pt.z = tmp_jnts_mat(2,5);
-            mkr.points.push_back(pt);
-            pt.x = tmp_jnts_mat(0,8);
-            pt.y = tmp_jnts_mat(1,8);
-            pt.z = tmp_jnts_mat(2,8);
+            // mkr.points.push_back(pt);
+            // pt.x = tmp_jnts_mat(0,8);
+            // pt.y = tmp_jnts_mat(1,8);
+            // pt.z = tmp_jnts_mat(2,8);
             mkr.points.push_back(pt);
             std::vector<Eigen::Vector3f> tmp_jnts;
             for (int c=0;c<tmp_jnts_mat.cols();c++) tmp_jnts.emplace_back(tmp_jnts_mat.col(c).cast<float>());
@@ -813,6 +813,29 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     sub_goal = nh.subscribe<control_msgs::FollowJointTrajectoryActionGoal>(ctrl_ns+"/follow_joint_trajectory/goal",1,&robot_sequence::goal_callback,this);
     pub_cancel_traj = nh.advertise<actionlib_msgs::GoalID>( ctrl_ns+"/follow_joint_trajectory/cancel", 0,false);
     centroids_pub = nh.advertise<geometry_msgs::PoseArray>( "/centroids", 0,false);
+    pc_pub = nh.advertise<sensor_msgs::PointCloud>( "/occupancy", 0,false);
+    Eigen::Vector3d workspace_lb={-1,-1,0.5};
+    Eigen::Vector3d workspace_ub={1,1,2.5};
+    
+    std::vector<double> ws_lb_param;
+
+    if (nh.getParam("workspace_lower_bounds_xyz",ws_lb_param))
+    {
+        for (int i=0;i<3;i++) workspace_lb[i] = ws_lb_param[i];
+    } else {
+        ROS_DEBUG("workspace_lower_bounds_xyz is not set, default={-1,-1,0.5}");
+    }  
+
+    std::vector<double> ws_ub_param;
+
+    if (nh.getParam("workspace_upper_bounds_xyz",ws_ub_param))
+    {
+        for (int i=0;i<3;i++) workspace_ub[i] = ws_ub_param[i];
+    } else {
+        ROS_DEBUG("workspace_lower_bounds_xyz is not set, default={1,1,2.5}");
+    }
+    unsigned int npnt=50;
+    grid_ = std::make_shared<human_occupancy::OccupancyGrid>(workspace_lb,workspace_ub,npnt);
 }
 
 void robot_sequence::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
@@ -914,6 +937,23 @@ void robot_sequence::segment_thread_fn(int seg_num) {
             move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
 
             centroids_pub.publish(rec->pose_msg);
+            std::vector<Eigen::Vector3f> pts = rec->live_human_points;
+            Eigen::Vector3f p;
+            if (pts.size()>1) {
+                p = 0.5*(pts[0]+pts[1]);
+                pts.push_back(p);
+                p = 0.5*(pts[2]+pts[1]);
+                pts.push_back(p);
+                p = 0.5*(pts[3]+pts[4]);
+                pts.push_back(p);
+                p = 0.5*(pts[4]+pts[5]);
+                pts.push_back(p);
+                p = 0.5*(pts[6]+pts[7]);
+                pts.push_back(p);
+                p = 0.5*(pts[7]+pts[8]);
+                pts.push_back(p);
+            }
+            set_occupancy(pts);
             moveit::planning_interface::MoveGroupInterface::Plan plan;
             bool plan_success = false;
             while (!plan_success) {
@@ -1096,5 +1136,22 @@ jsk_rviz_plugins::OverlayText gen_overlay_text(std::string txt) {
     msg.bg_color.b = 0.0;
     msg.bg_color.a = 0.2;
     return msg;
+}
+void robot_sequence::set_occupancy(std::vector<Eigen::Vector3f> avoid_pts) {
+    visualization_msgs::Marker obs_pts;
+    geometry_msgs::PoseArray pc_pose_array;
+    pc_pose_array.header.frame_id="world";
+    avoidance_intervals::display_markers(avoid_pts,obs_pts);
+    geometry_msgs::Pose pose;
+    for (geometry_msgs::Point p:obs_pts.points) {
+        pose.position = p;
+        pc_pose_array.poses.push_back(pose);
+    }
+    grid_->update(pc_pose_array);
+    sensor_msgs::PointCloud pc;
+    pc = grid_->toPointCloud();
+    pc_pub.publish(pc);
+
+    // pub_timer = nh_.createTimer(ros::Duration(1.0/50.0), &human_occupancy_helper::set_occupancy_timer, this);
 }
 }
