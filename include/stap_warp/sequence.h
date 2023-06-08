@@ -22,6 +22,10 @@
 #include <moveit_msgs/MoveGroupAction.h>
 #include <actionlib_msgs/GoalID.h>
 #include <control_msgs/FollowJointTrajectoryActionGoal.h>
+#include <unistd.h>
+#include <rosbag/bag.h>
+#include <rosbag/view.h>
+#include <std_msgs/Float64.h>
 
 namespace stap_test {
 

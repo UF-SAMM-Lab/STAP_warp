@@ -867,37 +867,71 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
     pub_txt->publish(gen_overlay_text("robot plan:" + std::to_string(seg_num) + "-" + data[seg_num].description));
     ROS_INFO_STREAM("planning for segment:"<<seg_num);
+    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/sequence_" + std::to_string(seg_num) + "_plan.bag";
     if (data[seg_num].get_type()==0) {
-        move_group.setPlanningPipelineId(data[seg_num].pipeline);
-        move_group.setPlannerId(data[seg_num].planner);
-        for (int i = 0;i<6;i++) std::cout<<start_joint[i]<<",";
-        std::cout<<"->";
-        for (int i = 0;i<6;i++) std::cout<<goals_angles[data[seg_num].get_goal_id()][i]<<",";
-        std::cout<<std::endl;
-        state = move_group.getCurrentState();
-        state->setVariablePositions(start_joint);
-        move_group.setStartState(*state);
-        move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
-        moveit::planning_interface::MoveGroupInterface::Plan plan;
-        ros::Time plan_req_time = ros::Time::now();
-        bool plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
-        std::cout<<(last_perf_received-plan_req_time).toSec()<<std::endl;
-        if (data[seg_num].pipeline=="irrt_avoid") {
-            while ((last_perf_received-plan_req_time).toSec()<0.0) {
-                ros::Duration(0.1).sleep();
-                ROS_INFO("waiting for planner time estimate");
+        if (access( bag_file.c_str(), F_OK ) != -1) {
+            rosbag::Bag bag; 
+            bag.open(bag_file, rosbag::bagmode::Read);
+            std::vector<std::string> topics;
+            topics.push_back("sequence_" + std::to_string(seg_num) + "_planning_time");
+            topics.push_back("sequence_" + std::to_string(seg_num) + "_start_state");
+            topics.push_back("sequence_" + std::to_string(seg_num) + "_trajectorie");
+            std::vector<double> planning_times;
+            std::vector<moveit_msgs::RobotState> start_states;
+            std::vector<moveit_msgs::RobotTrajectory> trajectories;    
+            for(rosbag::MessageInstance const m: rosbag::View(bag)) {
+                std_msgs::Float64::ConstPtr plan_time_msg = m.instantiate<std_msgs::Float64>();
+                if (plan_time_msg!=nullptr) planning_times.push_back((double)plan_time_msg->data);
+                moveit_msgs::RobotState::ConstPtr start_state_msg = m.instantiate<moveit_msgs::RobotState>();
+                if (start_state_msg!=nullptr) start_states.push_back(*start_state_msg);
+                moveit_msgs::RobotTrajectory::ConstPtr trajectory_msg = m.instantiate<moveit_msgs::RobotTrajectory>();
+                if (trajectory_msg!=nullptr) trajectories.push_back(*trajectory_msg);
             }
+            data[seg_num].plan.start_state_ = start_states[0];
+            data[seg_num].plan.trajectory_ = trajectories[0];
+            data[seg_num].plan.planning_time_ = planning_times[0];
+            bag.close();
+            return planning_times[0];
         } else {
-            plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
-        }
-        if (plan_success) {
-            data[seg_num].plan = plan;
-            data[seg_num].planned_time = plan_time;
-            start_joint = plan.trajectory_.joint_trajectory.points.back().positions;
-            return plan_time;
-        } else {
-            ROS_ERROR("planning failed");
-            return 0.0;
+            move_group.setPlanningPipelineId(data[seg_num].pipeline);
+            move_group.setPlannerId(data[seg_num].planner);
+            for (int i = 0;i<6;i++) std::cout<<start_joint[i]<<",";
+            std::cout<<"->";
+            for (int i = 0;i<6;i++) std::cout<<goals_angles[data[seg_num].get_goal_id()][i]<<",";
+            std::cout<<std::endl;
+            state = move_group.getCurrentState();
+            state->setVariablePositions(start_joint);
+            move_group.setStartState(*state);
+            move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
+            moveit::planning_interface::MoveGroupInterface::Plan plan;
+            ros::Time plan_req_time = ros::Time::now();
+            bool plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
+            std::cout<<(last_perf_received-plan_req_time).toSec()<<std::endl;
+            if (data[seg_num].pipeline=="irrt_avoid") {
+                while ((last_perf_received-plan_req_time).toSec()<0.0) {
+                    ros::Duration(0.1).sleep();
+                    ROS_INFO("waiting for planner time estimate");
+                }
+            } else {
+                plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
+            }
+            if (plan_success) {
+                data[seg_num].plan = plan;
+                data[seg_num].planned_time = plan_time;
+                std_msgs::Float64 plan_time_msg;
+                plan_time_msg.data = plan_time;
+                rosbag::Bag bag; 
+                bag.open(bag_file, rosbag::bagmode::Write);
+                bag.write("sequence_" + std::to_string(seg_num) + "_planning_time",ros::Time::now(),plan_time_msg);
+                bag.write("sequence_" + std::to_string(seg_num) + "_start_state",ros::Time::now(),plan.start_state_);
+                bag.write("sequence_" + std::to_string(seg_num) + "_trajectorie",ros::Time::now(),plan.trajectory_);
+                bag.close();
+                start_joint = plan.trajectory_.joint_trajectory.points.back().positions;
+                return plan_time;
+            } else {
+                ROS_ERROR("planning failed");
+                return 0.0;
+            }
         }
     } else {
         data[seg_num].planned_time =1.0;
