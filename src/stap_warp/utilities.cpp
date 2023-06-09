@@ -802,7 +802,7 @@ void humanCollisionObjects::read_human_task(int task_num, Eigen::Isometry3f tran
 
 }
 
-void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state) {
+void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state,std::string plan_group, std::string last_link) {
   visualization_msgs::Marker mkr;
   mkr.header.frame_id = "world";
   mkr.id = 20000;
@@ -825,9 +825,9 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
   Eigen::VectorXd q2(6);
   for (int i=0;i<plan.trajectory_.joint_trajectory.points.size();i++) {
     for (int q=0;q<6;q++) q1[q] = plan.trajectory_.joint_trajectory.points[i].positions[q];
-    state->setJointGroupPositions("edo",q1);
+    state->setJointGroupPositions(plan_group,q1);
     geometry_msgs::Pose pose;
-    tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+    tf::poseEigenToMsg(state->getGlobalLinkTransform(last_link),pose);
     mkr.points.push_back(pose.position);
   }
   nom_plan_pub.publish(mkr);
@@ -853,9 +853,9 @@ void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupI
     for (int j=0;j<n;j++) {
       double pct = (double)j/(double)n;
       Eigen::VectorXd q3 = q1+pct*diff;
-      state->setJointGroupPositions("edo",q3);
+      state->setJointGroupPositions(plan_group,q3);
       geometry_msgs::Pose pose;
-      tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+      tf::poseEigenToMsg(state->getGlobalLinkTransform(last_link),pose);
       mkr2.points.push_back(pose.position);
     }
   }

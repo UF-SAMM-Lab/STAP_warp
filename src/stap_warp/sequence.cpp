@@ -764,7 +764,7 @@ int human::get_seq_size(void) {
     return sequence.size();
 }
 
-robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_,std::shared_ptr<ros::Publisher> pub_txt):nh(nh),state(state),model(model),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_),pub_txt(pub_txt) {
+robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_,std::shared_ptr<ros::Publisher> pub_txt):nh(nh),state(state),model(model),plan_group(plan_group),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_,plan_group),pub_txt(pub_txt) {
     if (!nh.getParam("/test_sequence/1/robot_sequence/length", num_steps))
     {
       ROS_ERROR("/test_sequence/1/robot_sequence/length is not defined in sequence.yaml");
@@ -836,6 +836,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     }
     unsigned int npnt=50;
     grid_ = std::make_shared<human_occupancy::OccupancyGrid>(workspace_lb,workspace_ub,npnt);
+    link_names = move_group.getLinkNames();
 }
 
 void robot_sequence::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
@@ -867,7 +868,11 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
     pub_txt->publish(gen_overlay_text("robot plan:" + std::to_string(seg_num) + "-" + data[seg_num].description));
     ROS_INFO_STREAM("planning for segment:"<<seg_num);
-    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/sequence_" + std::to_string(seg_num) + "_plan.bag";
+    if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group))
+        std::cout << "Created a directory\n";
+    else
+        std::cerr << "Failed to create a directory\n";
+    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
     if (data[seg_num].get_type()==0) {
         if (access( bag_file.c_str(), F_OK ) != -1) {
             rosbag::Bag bag; 
@@ -1107,7 +1112,7 @@ bool robot_sequence::do_segment(int seg_num) {
     mkr.header.frame_id = "world";
     mkr.text = "robot exec:"+std::to_string(seg_num)+"-"+ data[seg_num].description;
     pub_txt->publish(gen_overlay_text(mkr.text));
-    pub_plan(nom_plan_pub,data[seg_num].plan,state);
+    pub_plan(nom_plan_pub,data[seg_num].plan,state,plan_group,link_names.back());
     segment_thread = std::thread(&robot_sequence::segment_thread_fn,this,seg_num);
     return segment_active;
 }

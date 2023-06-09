@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     monitor.reset(new planning_scene_monitor::PlanningSceneMonitor(robot_model_loader));
     planning_scene::PlanningScenePtr ps_ptr = monitor->getPlanningScene();
 
-    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
+    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr,"edo");
     std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> vel_profile;
     stap_warp.time_parameterize(plan,vel_profile);
     std::cout<<plan<<std::endl;

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(stap_warp)
-add_compile_options(-std=c++14 -funroll-loops -Wall -Ofast)
+add_compile_options(-std=c++17 -funroll-loops -Wall -Ofast)
 # set(CMAKE_BUILD_TYPE Release)
 add_definitions(-w)
 #add_compile_options(-std=c++11)

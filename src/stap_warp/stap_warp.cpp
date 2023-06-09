@@ -1,6 +1,6 @@
 #include <stap_warp/stap_warp.h>
 namespace stap {
-stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_):nh(nh),state(state),model(model),move_group("edo") {
+stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_, std::string plan_group):nh(nh),state(state),model(model),plan_group(plan_group),move_group(plan_group) {
     urdf::Model robo_model;
     robo_model.initParam("robot_description");
     std::string base_frame_ = "world";
@@ -110,6 +110,7 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
         acm.setEntry(co_ids[i],true);
       }
     // }
+    joint_names = state->getVariableNames();
 }
 
 void stap_warper::act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj) {
@@ -182,9 +183,9 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     // for (int i=0;i<poses.size();i++) std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
     bool first_pass = false;
     Eigen::Vector3d goal_position;
-    state->setJointGroupPositions("edo",trj.points.back().positions);
+    state->setJointGroupPositions(plan_group,trj.points.back().positions);
     geometry_msgs::Pose pose;
-    tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+    tf::poseEigenToMsg(state->getGlobalLinkTransform(link_names.back()),pose);
     goal_position[0] = pose.position.x;
     goal_position[1] = pose.position.y;
     goal_position[2] = pose.position.z;
@@ -355,7 +356,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 // std::cout<<"tau sum:"<<tau.transpose()<<std::endl;
                 Eigen::VectorXd new_q = cur_q-1.0*tau;                
                 
-                state->setJointGroupPositions("edo", new_q);
+                state->setJointGroupPositions(plan_group, new_q);
                 state->update();
                 if (!state->satisfiesBounds())
                 {
@@ -365,7 +366,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                   continue;
                 }
 
-                if (!planning_scene->isStateValid(*state,"edo"))
+                if (!planning_scene->isStateValid(*state,plan_group))
                 {
                   // ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
                   new_poses.push_back(cur_q);
@@ -410,8 +411,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
         // std::cout<<"new poses:\n";
         for (int i=0;i<poses.size();i++) {
           // std::cout<<wp_times[i]<<":"<<poses[i].transpose()<<std::endl;
-          state->setJointGroupPositions("edo",poses[i]);
-          tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+          state->setJointGroupPositions(plan_group,poses[i]);
+          tf::poseEigenToMsg(state->getGlobalLinkTransform(link_names.back()),pose);
           mkr2.points.push_back(pose.position);
           
         }
@@ -444,7 +445,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     mkr2.lifetime = ros::Duration();
 
     trajectory_msgs::JointTrajectory new_plan;
-    new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
+    new_plan.joint_names = joint_names;//state->getJointStateGroup(plan_group)->getJointNames();
+    // new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
     Eigen::VectorXd diff = Eigen::VectorXd::Zero(6);
     trajectory_msgs::JointTrajectoryPoint pt;
     // for (int j=0;j<6;j++) pt.positions.push_back(cur_pose[j]);
@@ -456,8 +458,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     for (int j=0;j<6;j++) pt.velocities.push_back(cur_js.velocity[j]);
     // pt.accelerations = cur_js.acceleration;
     new_plan.points.push_back(pt);
-    state->setJointGroupPositions("edo",pt.positions);
-    tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+    state->setJointGroupPositions(plan_group,pt.positions);
+    tf::poseEigenToMsg(state->getGlobalLinkTransform(link_names.back()),pose);
     mkr2.points.push_back(pose.position);
     diff = (poses[1]-poses[0]).normalized();
     prev_pose = cur_pose;
@@ -469,8 +471,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;
         for (int j=0;j<6;j++) pt.effort[j] = 0.0;
         new_plan.points.push_back(pt);
-        state->setJointGroupPositions("edo",pt.positions);
-        tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+        state->setJointGroupPositions(plan_group,pt.positions);
+        tf::poseEigenToMsg(state->getGlobalLinkTransform(link_names.back()),pose);
         mkr2.points.push_back(pose.position);
         diff = new_diff;
         prev_pose = poses[i-1];
@@ -487,7 +489,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     trajectory_processing::IterativeParabolicTimeParameterization iptp;
     robot_state::RobotStatePtr state = move_group.getCurrentState();
     // moveit::core::robotStateToRobotStateMsg(*state,new_plan.start_state_);
-    robot_trajectory::RobotTrajectory tp_trj(model,"edo");
+    robot_trajectory::RobotTrajectory tp_trj(model,plan_group);
     tp_trj.setRobotTrajectoryMsg(*state,new_plan);
     iptp.computeTimeStamps(tp_trj);
     moveit_msgs::RobotTrajectory trj_msg;
@@ -505,8 +507,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     //   std::cout<<std::endl;
     // }
 
-
-    new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
+    new_plan.joint_names = joint_names;
+    // new_plan.joint_names = {"edo_joint_1","edo_joint_2","edo_joint_3","edo_joint_4","edo_joint_5","edo_joint_6"};
     blend_pub.publish(new_plan);
 
     last_warp_time = ros::Time::now();
@@ -538,8 +540,8 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
       for (int j=0;j<n;j++) {
         double pct = (double)j/(double)n;
         Eigen::VectorXd q3 = q1+pct*diff;
-        state->setJointGroupPositions("edo",q3);
-        tf::poseEigenToMsg(state->getGlobalLinkTransform("edo_link_6"),pose);
+        state->setJointGroupPositions(plan_group,q3);
+        tf::poseEigenToMsg(state->getGlobalLinkTransform(link_names.back()),pose);
         mkr.points.push_back(pose.position);
       }
     }

@@ -202,6 +202,7 @@ int main(int argc, char** argv) {
     robot_state::RobotStatePtr state;
     state = move_group.getCurrentState();
     state->setVariablePositions(start_joint);
+    std::vector<std::string> link_names = move_group.getLinkNames();
     move_group.setStartState(*state);
     int human_task_num;
     bool use_collision_objects_initially;
@@ -370,7 +371,7 @@ int main(int argc, char** argv) {
     nh.getParam("/num_tests", num_tests);
     move_group.setMaxVelocityScalingFactor(1.0);
     move_group.setMaxAccelerationScalingFactor(1.0);
-    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
+    stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr,plan_group);
 
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
@@ -414,7 +415,7 @@ int main(int argc, char** argv) {
       if (plan_success) {
         plans.push_back(plan);
       } else {
-        ROS_ERROR("planning failed");
+        ROS_ERROR("step 1 planning failed");
         num_tests++;
         continue;
       }
@@ -448,7 +449,7 @@ int main(int argc, char** argv) {
       if (plan_success) {
         plans.push_back(plan);
       } else {
-        ROS_ERROR("planning failed");
+        ROS_ERROR("step 2 planning failed");
         num_tests++;
         continue;
       }    
@@ -477,13 +478,20 @@ int main(int argc, char** argv) {
       move_group.setStartState(*state);
       // move_group.setStartStateToCurrentState();
       std::vector<double> home_joint = {0.0,0.0,0.0,0.0,0.0,0.0};
+      if (!nh.getParam("/home_joint",home_joint))
+      {
+        ROS_DEBUG("couldnt get home joint");
+      }
+      std::cout<<"home joint: ";
+      for (int s=0;s<home_joint.size();s++) {std::cout<<home_joint[s]<<", ";}
+      std::cout<<std::endl;
       move_group.setJointValueTarget(home_joint);
       move_group.setPlanningTime(2.0);
       plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
       if (plan_success) {
         plans.push_back(plan);
       } else {
-        ROS_ERROR("planning failed");
+        ROS_ERROR("step 3 planning failed");
         num_tests++;
         continue;
       }
@@ -669,7 +677,7 @@ int main(int argc, char** argv) {
         if (i==1) {
             ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
 
-            pub_plan(nom_plan_pub,plans[i],state);
+            pub_plan(nom_plan_pub,plans[i],state,plan_group,link_names.back());
             move_group.asyncExecute(plans[i]);
             int human_step=0;
             ros::Duration(0.1).sleep();

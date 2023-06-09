@@ -1,0 +1,282 @@
+home_joint: [0.0,0.0,0.0,0.0,0.0,0.0]
+workcell_transform: [0,0,0,1,0,0,0]
+
+tests:
+  "1":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: avoid_task1
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "2":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: birrt_task1
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "3":
+    planning_pipeline: dirrt
+    planner_id: dirrt_paper
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: dirrt_task1
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: true
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "4":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: birrt_replan_task1
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: false
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "5":
+    planning_pipeline: dirrt
+    planner_id: multigoal_ssm_test
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: prob_hamp_task1
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: true
+    planning_time: 5
+    publish_occupancy_centoroids: true
+    get_plan_time_from_perf: true
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "6":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: avoid_gator_chomp
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 2
+
+  "7":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: birrt_gator_chomp
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 2
+
+  "8":
+    planning_pipeline: dirrt
+    planner_id: dirrt_paper
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: dirrt_gator_chomp
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: true
+    human_sequence_num: 2
+
+  "9":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: birrt_replan_gator_chomp
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: false
+    human_sequence_num: 2
+
+  "10":
+    planning_pipeline: dirrt
+    planner_id: multigoal_ssm_test
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: prob_hamp_gator_chomp
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: true
+    planning_time: 5
+    publish_occupancy_centoroids: true
+    get_plan_time_from_perf: true
+    human_sequence_num: 2
+
+  "11":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: avoid_task3
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 1
+
+  "12":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: birrt_task3
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 1
+
+  "13":
+    planning_pipeline: dirrt
+    planner_id: dirrt_paper
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: dirrt_task3
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: true
+    human_sequence_num: 1
+
+  "14":
+    planning_pipeline: ompl
+    planner_id: BiTRRT
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: birrt_replan_task3
+    use_collision_objects_initially: true
+    use_collision_objects_continuously: true
+    get_plan_time_from_perf: false
+    human_sequence_num: 1
+
+  "15":
+    planning_pipeline: dirrt
+    planner_id: multigoal_ssm_test
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: prob_hamp_task3
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: true
+    publish_occupancy_centoroids: true
+    planning_time: 5
+    get_plan_time_from_perf: true
+    human_sequence_num: 1
+
+  "16":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta2
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: avoid2_task1
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "17":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta2
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: avoid2_gator_chomp
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 2
+
+  "18":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta2
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: avoid2_task3
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 1
+
+  "19":
+    planning_pipeline: stomp
+    planner_id: stomp
+    human_task_num: 1
+    robot_start: [155,91.0,0,0,87.6,0] #start joint angles in degrees [-18,-106,107,-90,90,108]
+    robot_goal: [0,50,57.3,0,-17.2,0] #stop joint angles in degrees [129, -67, 74, -97, 90, -39]
+    log_file_name: stomp_task1
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 0
+    # workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+
+  "20":
+    planning_pipeline: stomp
+    planner_id: stomp
+    human_task_num: 0
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees
+    robot_goal: [170,87,18,0,-4,0] #stop joint angles in degrees
+    log_file_name: stomp_gator_chomp
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 2
+
+  "21":
+    planning_pipeline: stomp
+    planner_id: stomp
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: stomp_task3
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: false
+    human_sequence_num: 1
+  
+  "22":
+    planning_pipeline: irrt_avoid
+    planner_id: irrta
+    human_task_num: 2
+    robot_start: [0,87,18,0,-4,0] #start joint angles in degrees [162,-90,95,-95,90,-72]
+    robot_goal: [133,86,63,0,-49,0] #stop joint angles in degrees [26,-64,66,-92,90,64]
+    log_file_name: avoid_task3
+    use_collision_objects_initially: false
+    use_collision_objects_continuously: false
+    get_plan_time_from_perf: true
+    human_sequence_num: 3
+
+

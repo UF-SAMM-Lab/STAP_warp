@@ -20,7 +20,7 @@ typedef Eigen::Array<bool,Eigen::Dynamic,1> ArrayXb;
 namespace stap {
 class stap_warper {
     public:
-        stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_);
+        stap_warper(ros::NodeHandle nh,robot_state::RobotStatePtr state, robot_model::RobotModelPtr model,const planning_scene::PlanningScenePtr &planning_scene_, std::string plan_group);
         void warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq, double human_time_since_start, Eigen::VectorXd cur_pose, sensor_msgs::JointState cur_js);
         void time_parameterize(trajectory_msgs::JointTrajectory &plan, std::vector<std::tuple<Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd,Eigen::ArrayXd>> &vel_profile);
     private:
@@ -61,5 +61,7 @@ class stap_warper {
         planning_scene::PlanningScenePtr planning_scene;
         double direct_path_attraction=0.0001;
         double connection_min_dist = 0.5;
+        std::string plan_group;
+        std::vector<std::string> joint_names;
 };
 }

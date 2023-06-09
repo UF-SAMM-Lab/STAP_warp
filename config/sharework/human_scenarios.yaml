@@ -1,0 +1,158 @@
+test_sequence:
+  "0":
+    human_sequence:
+      length: 3
+      description: "get engine block at left"
+      show_human_rate: 10
+      simulated_switch_times: [12.0,16.0,19.0,23.0] #[8.0,12.0,15.0,20.0]
+      "0":
+        description: "reach for the block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.3,-0.1,0.6]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+      "1":
+        description: "bring block to table"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 5.0
+        reach_target: [0.05,0.4,0.1]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+      "2":
+        description: "reach for part"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 5.0
+        reach_target: [0.3,0.15,0.05]
+        end_delay: 0.0
+        arm: "left"
+        check_pos: true
+  "1":
+    human_sequence:
+      length: 3
+      description: "bring piston to engine and then put back"
+      show_human_rate: 10
+      simulated_switch_times: [5.0,13.0,20] #[2.0,10.0,17] #[5.0,13.0,20]
+      "0":
+        description: "reach for the piston"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+      "1":
+        description: "bring piston to block"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 5.0
+        reach_target: [-0.05,0.6,0.25]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+      "2":
+        description: "put piston back"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 8.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true
+  "2":
+    human_sequence:
+      length: 5
+      description: "gator chomp"
+      show_human_rate: 10
+      "0":
+        description: "extend arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target_left: [0.1,0.1,0.5]
+        reach_target_right: [-0.1,0.1,0.5]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "1":
+        description: "separate arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 1.0
+        reach_target_left: [0.1,0.3,0.0]
+        reach_target_right: [-0.1,0.3,1.0]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "2":
+        description: "extend arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.1,0.1,0.5]
+        reach_target_right: [-0.1,0.1,0.5]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "3":
+        description: "separate arms"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.1,0.3,0.0]
+        reach_target_right: [-0.1,0.3,1.0]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      "4":
+        description: "back together"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 2.0
+        reach_target_left: [0.1,0.1,0.5]
+        reach_target_right: [-0.1,0.1,0.5]
+        end_delay: 0.0
+        arm: "both"
+        check_pos: true
+      simulated_switch_times: [1.0,5.0,10.0,15.0,20.0] # [0.0,3.0,8.0,13.0,18.0] #[1.0,5.0,10.0,15.0,20.0]
+      # "4":
+      #   description: "separate arms"
+      #   after_robot_task: -1
+      #   after_human_task: -1
+      #   start_delay: 2.0
+      #   reach_target_left: [0.0,0.6,0.0]
+      #   reach_target_right: [0.0,0.6,0.9]
+      #   end_delay: 0.0
+      #   arm: "both"
+      #   check_pos: true
+      # "5":
+      #   description: "back together"
+      #   after_robot_task: -1
+      #   after_human_task: -1
+      #   start_delay: 2.0
+      #   reach_target_left: [0.0,0.1,0.3]
+      #   reach_target_right: [0.0,0.1,0.3]
+      #   end_delay: 0.0
+      #   arm: "both"
+      #   check_pos: true
+  "3":
+    human_sequence:
+      length: 1
+      description: "bring piston to engine and then put back"
+      show_human_rate: 10
+      simulated_switch_times: [5.0,13.0,20] #[2.0,10.0,17] #[5.0,13.0,20]
+      "0":
+        description: "reach for the piston"
+        after_robot_task: -1
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.3,0.1,0.1]
+        end_delay: 0.0
+        arm: "right"
+        check_pos: true

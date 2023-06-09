@@ -186,6 +186,7 @@ int main(int argc, char** argv) {
       }
       robot_state::RobotStatePtr state;
       state = move_group.getCurrentState();
+      std::vector<std::string> link_names = move_group.getLinkNames();
       state->setVariablePositions(start_joint);
       move_group.setStartState(*state);
       int human_task_num;
@@ -212,7 +213,7 @@ int main(int argc, char** argv) {
       std::vector<double> workcell_transform(7,0.0);
       
       Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
-      if (nh.getParam("/tests/"+std::to_string(test_num)+"/workcell_transform", workcell_transform)) {
+      if (nh.getParam("/workcell_transform", workcell_transform)) {
         transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
         transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
       }
@@ -326,7 +327,7 @@ int main(int argc, char** argv) {
       move_group.setMaxVelocityScalingFactor(1.0);
       move_group.setMaxAccelerationScalingFactor(1.0);
 
-      stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr);
+      stap::stap_warper stap_warp(nh,move_group.getCurrentState(),model,ps_ptr,plan_group);
 
       for (int iter=0;iter<num_tests;iter++) {
         std::vector<moveit::planning_interface::MoveGroupInterface::Plan> plans;
@@ -417,7 +418,7 @@ int main(int argc, char** argv) {
           num_tests++;
           continue;
         }    
-        pub_plan(nom_plan_pub,plan,state);
+        pub_plan(nom_plan_pub,plan,state,plan_group,link_names.back());
         
 
         est_plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
@@ -616,7 +617,7 @@ int main(int argc, char** argv) {
             if ((i==1)&&(planner_id=="irrta")) {
               ROS_INFO_STREAM("plan size:"<<plans[i].trajectory_.joint_trajectory.points.size());
 
-              pub_plan(nom_plan_pub,plans[i],state);
+              pub_plan(nom_plan_pub,plans[i],state,plan_group,link_names.back());
               move_group.asyncExecute(plans[i]);
               ros::Duration(0.1).sleep();
               while ((rec.joint_pos_vec-goal_vec).norm()>0.001) {

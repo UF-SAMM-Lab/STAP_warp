@@ -26,6 +26,9 @@
 #include <rosbag/bag.h>
 #include <rosbag/view.h>
 #include <std_msgs/Float64.h>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 namespace stap_test {
 
@@ -196,5 +199,7 @@ class robot_sequence {
         ros::Publisher pc_pub;
         human_occupancy::OccupancyGridPtr grid_;
         void set_occupancy(std::vector<Eigen::Vector3f> avoid_pts);
+        std::string plan_group;
+        std::vector<std::string> link_names;
 };
 }

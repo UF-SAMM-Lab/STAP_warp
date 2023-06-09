@@ -32,7 +32,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 void clearObstacles(void);
-void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state);
+void pub_plan(ros::Publisher nom_plan_pub,moveit::planning_interface::MoveGroupInterface::Plan plan,robot_state::RobotStatePtr state, std::string plan_group, std::string last_link);
 moveit_msgs::CollisionObject createCollisionBox(Eigen::Vector3f dims, Eigen::Vector3f position, Eigen::Quaternionf quat, std::string id);
 
 class humanCollisionObjects {

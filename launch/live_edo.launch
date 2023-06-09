@@ -1,0 +1,39 @@
+<launch>
+    <arg name="test" default="1" />
+    <arg name="planning_time" default="5" />
+    <arg name="debug" default="false" />
+    <arg name="avoid_time_offset" default="0.0" />
+    <arg name="num_tests" default="1" />
+    <arg name="stap_offset" default="0" />
+    <arg name="simulate_human" default="false" />
+    <arg name="use_warp" default="true" />
+    <rosparam file="$(find stap_warp)/config/edo/tests.yaml" />
+    <rosparam file="$(find stap_warp)/config/human_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/stap_config.yaml" />
+    <param  name="stap_offset" value="$(arg stap_offset)"/>
+    <param  name="test_num" value="$(arg test)"/>
+    <param  name="planning_time" value="$(arg planning_time)"/>
+    <param  name="num_tests" value="$(arg num_tests)"/>
+    <param  name="plan_group" value="edo"/>
+    <param  name="ctrl_ns" value="edo"/>
+    <param  name="use_warp" value="$(arg use_warp)"/>
+    <param  name="stap_warp/base_frame" value="edo_base_link"/>
+    <param  name="stap_warp/tool_frame" value="edo_link_ee_tip"/>
+    <arg unless="$(arg debug)" name="launch_prefix" value="" />
+    <arg     if="$(arg debug)" name="launch_prefix"
+           value="gdb --ex run --args" /> 
+    <rosparam file="$(find stap_warp)/config/edo/human_scenarios.yaml" command="load"/>
+
+    <rosparam file="$(find uf_edo_safety)/config/safety.yaml" command="load"/>
+    <include file="$(find uf_edo_safety)/launch/safety.launch"/>
+    <include file="$(find robot_human_distance_checker)/launch/dist_check.launch"/>
+    <include file="$(find human_prediction)/launch/predict_service.launch"/>
+    <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
+    <node name="test_live" pkg="stap_warp" type="test_live" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
+        <param name="avoid_time_offset" value="$(arg avoid_time_offset)"/>
+        <param name="simulate_human" value="$(arg simulate_human)"/>
+    </node> 
+    <!-- launch-prefix="gdb -ex run  -args"> -->
+    <!-- "gdb -.-ex run -.-args"  -->
+</launch>
