@@ -173,6 +173,7 @@ void data_recorder::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& m
 }
 
 void data_recorder::skeleton_callback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+    ready_ = true;
     std::lock_guard<std::mutex> lck(mtx3);
     camera_keypoints = msg->data;
     std::lock_guard<std::mutex> lck2(skel_pts_mtx);
@@ -206,6 +207,8 @@ void data_recorder::jnt_state_callback(const sensor_msgs::JointState::ConstPtr& 
         joint_effort = std::vector<double>(n_dof_,0.0);
     }
     if (n_dof_==0) return;
+
+    jnt_pos_mtx.lock();
     joint_pos_vec.resize(n_dof_);
     joint_pos_vec.setZero();
     joint_vel_vec.resize(n_dof_);
@@ -232,6 +235,7 @@ void data_recorder::jnt_state_callback(const sensor_msgs::JointState::ConstPtr& 
         //     ROS_WARN("no joint velocities!");
         }
     }
+    jnt_pos_mtx.unlock();
     std::vector< Eigen::Vector6d, Eigen::aligned_allocator<Eigen::Vector6d> > ee_twist=chain_->getTwist(joint_pos_vec,joint_vel_vec);
     double tmp_tangential_speed = 0.0;
     for (size_t il=0;il<ee_twist.size();il++) tmp_tangential_speed = std::max(tmp_tangential_speed,ee_twist.at(il).block(0,0,3,1).norm());
@@ -248,7 +252,6 @@ void data_recorder::jnt_state_callback(const sensor_msgs::JointState::ConstPtr& 
     cur_js = *msg;
 }
 void data_recorder::pose_callback(const geometry_msgs::PoseArray::ConstPtr& msg) {
-    ready_ = true;
     for (int i=0;i<msg->poses.size();i++) {
         human_pose_pts[i*3] = msg->poses[i].position.x;
         human_pose_pts[i*3+1] = msg->poses[i].position.y;

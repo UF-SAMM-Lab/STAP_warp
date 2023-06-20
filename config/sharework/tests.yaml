@@ -12,7 +12,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     human_sequence_num: 0
-    workcell_transform: [0.1,-0.2,1.0,0.707,0,0,-0.707]
+    workcell_transform: [0.1,-0.1,1.0,0.707,0,0,-0.707]
 
   "2":
     planning_pipeline: ompl
@@ -73,7 +73,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     human_sequence_num: 1
-    workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
+    workcell_transform: [0.0,-0.1,1.0,0.707,0,0,-0.707]
 
   "7":
     planning_pipeline: ompl
@@ -132,8 +132,8 @@ tests:
     log_file_name: avoid_gator_chomp
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
-    human_sequence_num: 0
-    workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
+    human_sequence_num: 2
+    workcell_transform: [-0.2,-0.0,1.0,0.707,0,0,-0.707] #-0.1,-0.0,1.0,0.707,0,0,-0.707
 
   "12":
     planning_pipeline: ompl
@@ -144,7 +144,7 @@ tests:
     log_file_name: birrt_gator_chomp
     use_collision_objects_initially: true
     use_collision_objects_continuously: false
-    human_sequence_num: 0
+    human_sequence_num: 2
     workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
 
   "13":
@@ -156,7 +156,7 @@ tests:
     log_file_name: dirrt_gator_chomp
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
-    human_sequence_num: 0
+    human_sequence_num: 2
     workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
 
   "14":
@@ -168,7 +168,7 @@ tests:
     log_file_name: birrt_replan_gator_chomp
     use_collision_objects_initially: true
     use_collision_objects_continuously: true
-    human_sequence_num: 0
+    human_sequence_num: 2
     workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
 
   "15":
@@ -181,7 +181,7 @@ tests:
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
     planning_time: 120
-    human_sequence_num: 0
+    human_sequence_num: 2
     workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
 
   "16":

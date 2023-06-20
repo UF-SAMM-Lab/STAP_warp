@@ -136,6 +136,15 @@ int main(int argc, char** argv) {
     // srv.request. = ps_ptr->getAllowedCollisionMatrix();
     planning_scene_diff_client.call(srv);
 
+    std::vector<double> workcell_transform(7,0.0);
+    workcell_transform[6] = 1.0;
+    Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
+    if (nh.getParam("/sequence_test/workcell_transform", workcell_transform)) {
+      transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
+      transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
+    }
+    ROS_INFO_STREAM(transform_to_world.matrix());
+
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
       ROS_INFO("waiting for predict_human service");
@@ -146,7 +155,7 @@ int main(int argc, char** argv) {
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
-    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,1);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,1,transform_to_world);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
 

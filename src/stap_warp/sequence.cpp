@@ -2,7 +2,7 @@
 
 namespace stap_test {
 
-humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub),pub_txt(pub_txt) {
+humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num, Eigen::Isometry3f transform_to_world):nh(nh),predictor(predictor),skel(skel),seq_pub(seq_pub),pub_txt(pub_txt), transform_to_world(transform_to_world) {
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/start_pose", start_pose);
     if (start_pose.size()==0) {
         start_pose = cur_pose;
@@ -14,7 +14,7 @@ humans::humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<
     data.clear();
     data.reserve(num_steps);
     for (int i=0; i<num_steps;i++) {
-        data.emplace_back(nh,i,predictor,seq_pub,prediction_dt,test_num);
+        data.emplace_back(nh,i,predictor,seq_pub,prediction_dt,test_num,transform_to_world);
     }
     human_model_pub = nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false);
     human_done_srv = nh.serviceClient<stap_warp::human_motion_done>("human_motion_done");
@@ -403,7 +403,7 @@ void humans::show_sequence(void) {
     }
 }
 
-human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num):predictor(predictor),seq_pub(seq_pub),prediction_dt(prediction_dt) {
+human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num, Eigen::Isometry3f transform_to_world):predictor(predictor),seq_pub(seq_pub),prediction_dt(prediction_dt), transform_to_world(transform_to_world) {
     id = idx;
     std::cout<<"test_num:"<<test_num<<", human "<<idx<<":";
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/show_human_rate",show_human_rate);
@@ -442,7 +442,7 @@ human::human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> pr
     }
     nh.getParam("/human_link_radii", radii);
     nh.getParam("/test_sequence/"+std::to_string(test_num)+"/human_sequence/"+std::to_string(idx)+"/check_pos", check_pos);
-
+    transform_to_world_inv = transform_to_world.inverse();
 }
 
 void human::show_step(int step_num) {
@@ -479,13 +479,60 @@ void human::show_step(int step_num) {
     seq_pub->publish(mkr_arr);
 }
 
+std::vector<float> human::transform_pose_to_UF(std::vector<float> input_pose) {
+    std::vector<float> output_pose;
+    Eigen::Vector3f pelvis_loc = transform_to_world_inv*Eigen::Vector3f(input_pose[0],input_pose[1],input_pose[2]);
+    for (int i=0;i<3;i++) output_pose.push_back(pelvis_loc[i]);
+    Eigen::Quaternionf q;
+    Eigen::Quaternionf quat_transform(transform_to_world_inv.rotation());
+    for (int i=0;i<7;i++){
+        q = quat_transform*Eigen::Quaternionf(input_pose[i*4+3],input_pose[i*4+4],input_pose[i*4+5],input_pose[i*4+6]);
+        output_pose.push_back(q.w());
+        output_pose.push_back(q.x());
+        output_pose.push_back(q.y());
+        output_pose.push_back(q.z());
+    }
+    return output_pose;
+}
+
+std::vector<float> human::transform_point_to_UF(std::vector<float> p) {
+    std::vector<float>out_p;
+    Eigen::Vector3f v = transform_to_world_inv*Eigen::Vector3f(p[0],p[1],p[2]);
+    for (int i=0;i<3;i++) out_p.push_back(v[i]);
+    return out_p;
+}
+
+std::vector<float> human::transform_point_to_SW(std::vector<float> p) {
+    std::vector<float>out_p;
+    Eigen::Vector3f v = transform_to_world*Eigen::Vector3f(p[0],p[1],p[2]);
+    for (int i=0;i<3;i++) out_p.push_back(v[i]);
+    return out_p;
+}
+
+std::vector<float> human::transform_pose_to_SW(std::vector<float> input_pose) {
+    std::vector<float> output_pose;
+    Eigen::Vector3f pelvis_loc = transform_to_world*Eigen::Vector3f(input_pose[0],input_pose[1],input_pose[2]);
+    for (int i=0;i<3;i++) output_pose.push_back(pelvis_loc[i]);
+    Eigen::Quaternionf q;
+    Eigen::Quaternionf quat_transform(transform_to_world.rotation());
+    for (int i=0;i<7;i++){
+        q = quat_transform*Eigen::Quaternionf(input_pose[i*4+3],input_pose[i*4+4],input_pose[i*4+5],input_pose[i*4+6]);
+        output_pose.push_back(q.w());
+        output_pose.push_back(q.x());
+        output_pose.push_back(q.y());
+        output_pose.push_back(q.z());
+    }
+    return output_pose;
+}
+
 void human::get_predicted_motion(std::vector<float> start_pose) {
     sequence.clear();
     if (done) return;
     if (!both_arms) {
         stap_warp::human_prediction srv;
-        srv.request.start_pose = start_pose;
-        srv.request.reach_target = reach_target;
+        //transform start_pose into UF world frame
+        srv.request.start_pose = transform_pose_to_UF(start_pose);
+        srv.request.reach_target = transform_point_to_UF(reach_target);
         srv.request.active_hand = !arm_right;
         srv.request.dt = prediction_dt;
         if (predictor->call(srv)) {
@@ -500,6 +547,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=1;j<n_cols;j++) {
                     quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
                 }
+                quat_vec = transform_pose_to_SW(quat_vec);
                 Eigen::Matrix3Xd joint_mat = Eigen::MatrixXd::Zero(3,15);
                 std::vector<Eigen::Vector3f> link_centroids;
                 std::vector<Eigen::Quaternionf> link_quats;
@@ -508,6 +556,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=0;j<joint_mat.cols();j++) {
                     for (int k=0;k<3;k++) joint_vec.push_back(joint_mat.col(j)[k]);
                 }
+                // dt, joint positions vector, pose+quat elements vector, and joint positions 3x15 matrix
                 sequence.emplace_back(srv.response.pose_sequence.data[i],joint_vec,quat_vec,joint_mat);
                 i+=n_cols;
                 if (i>srv.response.pose_sequence.data.size()-n_cols) break;
@@ -517,8 +566,8 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
         }
     } else {
         stap_warp::human_prediction srv;
-        srv.request.start_pose = start_pose;
-        srv.request.reach_target = reach_target_left;
+        srv.request.start_pose = transform_pose_to_UF(start_pose);
+        srv.request.reach_target = transform_point_to_UF(reach_target_left);
         srv.request.active_hand = true;
         srv.request.dt = prediction_dt;
         std::vector<std::pair<float,std::vector<float>>> left_quats;
@@ -532,12 +581,13 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=1;j<n_cols;j++) {
                     quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
                 }
+                quat_vec = transform_pose_to_SW(quat_vec);
                 left_quats.emplace_back(srv.response.pose_sequence.data[i],quat_vec);
                 i+=n_cols;
                 if (i>srv.response.pose_sequence.data.size()-n_cols) break;
             }
         }
-        srv.request.reach_target = reach_target_right;
+        srv.request.reach_target = transform_point_to_UF(reach_target_right);
         srv.request.active_hand = false;
         std::vector<std::pair<float,std::vector<float>>> right_quats;
         if (predictor->call(srv)) {
@@ -550,6 +600,7 @@ void human::get_predicted_motion(std::vector<float> start_pose) {
                 for (int j=1;j<n_cols;j++) {
                     quat_vec.push_back(srv.response.pose_sequence.data[i+j]);
                 }
+                quat_vec = transform_pose_to_SW(quat_vec);
                 right_quats.emplace_back(srv.response.pose_sequence.data[i],quat_vec);
                 i+=n_cols;
                 if (i>srv.response.pose_sequence.data.size()-n_cols) break;
@@ -1192,5 +1243,52 @@ void robot_sequence::set_occupancy(std::vector<Eigen::Vector3f> avoid_pts) {
     pc_pub.publish(pc);
 
     // pub_timer = nh_.createTimer(ros::Duration(1.0/50.0), &human_occupancy_helper::set_occupancy_timer, this);
+}
+
+
+std::vector<float> transform_point_to_UF(std::vector<float> p, Eigen::Isometry3f transform_to_world_inv) {
+    std::vector<float>out_p;
+    Eigen::Vector3f v = transform_to_world_inv*Eigen::Vector3f(p[0],p[1],p[2]);
+    for (int i=0;i<3;i++) out_p.push_back(v[i]);
+    return out_p;
+}
+
+std::vector<float> transform_point_to_SW(std::vector<float> p, Eigen::Isometry3f transform_to_world) {
+    std::vector<float>out_p;
+    Eigen::Vector3f v = transform_to_world*Eigen::Vector3f(p[0],p[1],p[2]);
+    for (int i=0;i<3;i++) out_p.push_back(v[i]);
+    return out_p;
+}
+
+std::vector<float> transform_pose_to_SW(std::vector<float> input_pose, Eigen::Isometry3f transform_to_world) {
+    std::vector<float> output_pose;
+    Eigen::Vector3f pelvis_loc = transform_to_world*Eigen::Vector3f(input_pose[0],input_pose[1],input_pose[2]);
+    for (int i=0;i<3;i++) output_pose.push_back(pelvis_loc[i]);
+    Eigen::Quaternionf q;
+    Eigen::Quaternionf quat_transform(transform_to_world.rotation());
+    for (int i=0;i<7;i++){
+        q = quat_transform*Eigen::Quaternionf(input_pose[i*4+3],input_pose[i*4+4],input_pose[i*4+5],input_pose[i*4+6]);
+        output_pose.push_back(q.w());
+        output_pose.push_back(q.x());
+        output_pose.push_back(q.y());
+        output_pose.push_back(q.z());
+    }
+    return output_pose;
+}
+
+std::vector<float> transform_pose_to_UF(std::vector<float> input_pose, Eigen::Isometry3f transform_to_world_inv) {
+    std::vector<float> output_pose;
+    Eigen::Vector3f pelvis_loc = transform_to_world_inv*Eigen::Vector3f(input_pose[0],input_pose[1],input_pose[2]);
+    for (int i=0;i<3;i++) output_pose.push_back(pelvis_loc[i]);
+    Eigen::Quaternionf q;
+    Eigen::Quaternionf quat_transform(transform_to_world_inv.rotation());
+    for (int i=0;i<7;i++){
+        q = quat_transform*Eigen::Quaternionf(input_pose[i*4+3],input_pose[i*4+4],input_pose[i*4+5],input_pose[i*4+6]);
+        output_pose.push_back(q.w());
+        output_pose.push_back(q.x());
+        output_pose.push_back(q.y());
+        output_pose.push_back(q.z());
+    }
+    return output_pose;
 }
 }

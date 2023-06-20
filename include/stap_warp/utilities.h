@@ -137,6 +137,7 @@ class human_occupancy_helper {
 
 class data_recorder {
   public:
+  std::mutex jnt_pos_mtx;
   double avoid_plan_time;
   geometry_msgs::PoseArray pose_msg;
   int spd_scale=0;
@@ -159,6 +160,12 @@ class data_recorder {
     // std::cout<<"cur_js\n";
     // std::cout<<cur_js<<std::endl;
     return cur_js;
+  }
+  Eigen::VectorXd get_jnt_pos_vec() {
+    std::lock_guard<std::mutex> lock(jnt_pos_mtx);
+    // std::cout<<"cur_js\n";
+    // std::cout<<cur_js<<std::endl;
+    return joint_pos_vec;
   }
   std::mutex skel_pts_mtx;
   std::vector<Eigen::Vector3f> live_human_points;

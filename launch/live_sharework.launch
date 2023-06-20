@@ -10,7 +10,7 @@
     <rosparam file="$(find stap_warp)/config/sharework/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
-    <rosparam file="$(find stap_warp)/config/stap_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/sharework/stap_config.yaml" />
     <param  name="stap_offset" value="$(arg stap_offset)"/>
     <param  name="test_num" value="$(arg test)"/>
     <param  name="planning_time" value="$(arg planning_time)"/>

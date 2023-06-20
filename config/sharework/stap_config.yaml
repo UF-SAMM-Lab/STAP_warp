@@ -1,0 +1,15 @@
+warp:
+  repulsion: 0.003 #.02
+  attraction: 0.00
+  table_repulsion: 0.1 #.02 
+  smooth_steps: 2
+  iterations: 2
+  table_tolerance: 1.05
+  connection_tol: 0.99
+  cycle_time: 0.033 #.1
+  direct_path_attraction: 0.0001
+  connection_min_dist: 0.3
+  goal_stop_tolerance: 1.0
+  scale_jnt_ids: [7,8,10,15]
+  minimum_distance: 0.25 #0.20
+  reaction_time: 0.2 #0.17

@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
     double est_plan_time;
 
     humanCollisionObjects co_human(nh,scene,human_link_lengths2,human_link_radii2, 0.05);
-    co_human.read_human_task(human_task_num,transform_to_world);
+    co_human.read_human_task(human_task_num,Eigen::Isometry3f::Identity());//transform_to_world
 
 
     human_publisher show_human(nh);
@@ -381,12 +381,13 @@ int main(int argc, char** argv) {
     //setup the human predictors
     std::shared_ptr<ros::Publisher> human_pub = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::MarkerArray>("predicted_human", 0,false));
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
+    human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
     int human_seq = 0;
     nh.getParam("/tests/"+std::to_string(test_num) + "/human_sequence_num", human_seq);
     ROS_INFO_STREAM("loading human sequence:"<<human_seq);
-    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,human_seq);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,human_seq,transform_to_world);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
     human_data->predicted_motion();
@@ -514,13 +515,14 @@ int main(int argc, char** argv) {
         if (i==1) {
           ROS_WARN("Press enter when the human is in place.  When you press enter, the human should repeat the recorded motion.");
 
+          std::cin.ignore();
+
           start_tm = ros::Time::now();
           std::cout<<"Starting in:\n";
           start_human.start();
           ros::Duration(3.0).sleep();
           std::cout<<"Go!\n";
           start_human.stop();
-          // std::cin.ignore();
         
           show_human.start_time = ros::Time::now();
           show_human.start_show_human();
@@ -756,7 +758,7 @@ int main(int argc, char** argv) {
               human_data->show_reach_tgt(human_step);
               //std::max((ros::Time::now()-p_start).toSec(),0.0);
               if (use_warp) {
-                stap_warp.warp(human_data->full_joint_seq,0.0,rec.joint_pos_vec,rec.get_current_joint_state());
+                stap_warp.warp(human_data->full_joint_seq,0.0,rec.get_jnt_pos_vec(),rec.get_current_joint_state());
               }
               // r1.sleep();
             }

@@ -5,10 +5,10 @@
     <arg name="avoid_time_offset" default="0.0" />
     <arg name="num_tests" default="1" />
     <arg name="stap_offset" default="0" />
-    <rosparam file="$(find stap_warp)/config/tests.yaml" />
+    <rosparam file="$(find stap_warp)/config/sharework/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
-    <rosparam file="$(find stap_warp)/config/stap_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/sharework/stap_config.yaml" />
     <param  name="stap_offset" value="$(arg stap_offset)"/>
     <param  name="test_num" value="$(arg test)"/>
     <param  name="planning_time" value="$(arg planning_time)"/>
@@ -18,6 +18,7 @@
     <param  name="stap_warp/base_frame" value="world"/>
     <param  name="stap_warp/tool_frame" value="open_tip"/>
     <param  name="sequence_test/planning_time" value="5.0"/>
+    <param  name="sequence_test/workcell_transform" value="0.0,-0.0,1.0,0.707,0,0,-0.707"/>
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg     if="$(arg debug)" name="launch_prefix"
            value="gdb --ex run --args" /> 

@@ -30,7 +30,14 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
     for (int i=0;i<Tbl_.size();i++) {
       std::cout<<i<<","<<Tbl_.at(i).translation().transpose()<<std::endl;
     }
-    ssm=std::make_shared<ssm15066::DeterministicSSM>(chain_,nh); 
+    ros::NodeHandle ssm_nh("stap_warp");
+    double min_dist = 0.2;
+    nh.getParam("/warp/minimum_distance", min_dist);
+    double react_time = 0.15;
+    nh.getParam("/warp/reaction_time", react_time);
+    ssm_nh.setParam("minimum_distance",min_dist);
+    ssm_nh.setParam("reaction_time",react_time);
+    ssm=std::make_shared<ssm15066::DeterministicSSM>(chain_,ssm_nh); 
     link_names = chain_->getLinksName();
     for (int i=0;i<link_names.size();i++) std::cout<<link_names[i]<<std::endl;
     scale_time_sub = nh.subscribe<std_msgs::Float64>("/execution_ratio",1,&stap_warper::scale_time_callback,this);
@@ -100,7 +107,21 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
     } else {
       ROS_INFO_STREAM("connection_min_dist:"<<connection_min_dist);
     }
-    scale_vect_ids = {3,4,5,8};
+    if (!nh.getParam("/warp/scale_jnt_ids",scale_vect_ids))
+    {
+      ROS_WARN("warp/scale_jnt_ids is not defined");
+    } else {
+      std::cout<<"scale_jnt_ids:";
+      for (int i=0;i<scale_vect_ids.size();i++) std::cout<<scale_vect_ids[i]<<", ";
+      std::cout<<std::endl;
+    }
+    if (!nh.getParam("/warp/goal_stop_tolerance",goal_stop_tolerance))
+    {
+      ROS_WARN("warp/goal_stop_tolerance is not defined");
+    } else {
+      ROS_INFO_STREAM("goal_stop_tolerance:"<<goal_stop_tolerance);
+    }
+    // scale_vect_ids = {3,4,5,8};
     planning_scene = planning_scene::PlanningScene::clone(planning_scene_);
     collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
     std::vector<std::string> co_ids = {"human_torso","human_neck","human_l_upper", "human_l_fore","human_r_upper","human_r_fore"};
@@ -136,7 +157,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     for (int i=0;i<cur_pose.size();i++) goal_pose[i] = trj.points.back().positions[i];
     Eigen::VectorXd direct_path_diff = goal_pose-cur_pose;
     double direct_path_len = (direct_path_diff).norm();
-    if (direct_path_len<0.7) return;
+    if (direct_path_len<goal_stop_tolerance) return;
     int num_steps = std::max(std::ceil(direct_path_len/0.1),1.0);
     Eigen::MatrixXd direct_path_pts;
     direct_path_pts.resize(cur_pose.size(),num_steps+1);
@@ -189,6 +210,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     goal_position[0] = pose.position.x;
     goal_position[1] = pose.position.y;
     goal_position[2] = pose.position.z;
+    std::vector<int> ctrl_pts_to_avoid_obstacle;
     for (int iter=0;iter<warp_iterations;iter++) {
         std::vector<Eigen::VectorXd> new_poses;
         std::vector<double> new_wpt_times;
@@ -237,6 +259,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 // double nom_time = wp_times[p-1] + pct*nominal_time;
                 // std::cout<<"nom time:"<<nom_time<<", human_time_since_start:"<<human_time_since_start<<",htime:"<<h_time<<std::endl;
                 Eigen::VectorXd cur_q = poses[p-1] + pct*diff;
+                if (cur_q.sum()==0) std::cout<<"cur q is zero: "<<poses[p-1].transpose()<<std::endl;
                 // double min_time_diff = diff
                 double nom_time = last_wpt_time + diff_pct*nominal_time;
                 double h_time = nom_time+human_time_since_start;
@@ -328,13 +351,14 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                   tau-=t_attr;
                   prev_attr_steps -= 1;
                 }
-
-                for (int j=2;j<T_base_all_links.size();j++) {
-                  if (T_base_all_links[j](2,3)<table_tolerance) {
-                    Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
-                    Eigen::VectorXd tmp_tau = table_repulsion*jacobian.block(0,0,3,jacobian.cols()).transpose()*Eigen::Vector3d::UnitZ();//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
-                    std::cout<<"too low! table tau:"<<tmp_tau.transpose()<<std::endl;
-                    tau -= tmp_tau;
+                if (table_tolerance>0) {
+                  for (int j=2;j<T_base_all_links.size();j++) {
+                    if (T_base_all_links[j](2,3)<table_tolerance) {
+                      Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
+                      Eigen::VectorXd tmp_tau = table_repulsion*(table_tolerance-T_base_all_links[j](2,3))*jacobian.block(0,0,3,jacobian.cols()).transpose()*Eigen::Vector3d::UnitZ();//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
+                      std::cout<<"too low! table tau:"<<tmp_tau.transpose()<<std::endl;
+                      tau -= tmp_tau;
+                    }
                   }
                 }
 
@@ -360,7 +384,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                 state->update();
                 if (!state->satisfiesBounds())
                 {
-                  // ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose());
+                  ROS_ERROR_STREAM("state is not valid:"<<new_q.transpose()<<"--"<<cur_q.transpose());
                   new_poses.push_back(cur_q);
                   new_wpt_times.push_back(nom_time);
                   continue;
@@ -368,8 +392,14 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
 
                 if (!planning_scene->isStateValid(*state,plan_group))
                 {
-                  // ROS_ERROR_STREAM("state is in collision:"<<new_q.transpose());
+                  // ROS_ERROR_STREAM("new q is in collision:"<<new_q.transpose());
+                  state->setJointGroupPositions(plan_group, cur_q);
+                  state->update();
+                  if (!planning_scene->isStateValid(*state,plan_group)) {
+                    ROS_ERROR_STREAM("new and cur q are in collision:"<<new_q.transpose()<<"--"<<cur_q.transpose());
+                  }
                   new_poses.push_back(cur_q);
+                  ctrl_pts_to_avoid_obstacle.push_back(int(new_poses.size())-1);
                   new_wpt_times.push_back(nom_time);
                   continue;
                 }
@@ -465,7 +495,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     prev_pose = cur_pose;
     for (int i=1;i<poses.size();i++) {
       Eigen::VectorXd new_diff = (poses[i]-poses[i-1]).normalized();
-      if (((abs(new_diff.dot(diff))<connection_tol)&&((poses[i-1]-cur_pose).norm()>0.8))&&((poses[i-1]-prev_pose).norm()>connection_min_dist)) {
+      if ((((abs(new_diff.dot(diff))<connection_tol)&&((poses[i-1]-cur_pose).norm()>0.8))&&((poses[i-1]-prev_pose).norm()>connection_min_dist))){//||(std::find(ctrl_pts_to_avoid_obstacle.begin(),ctrl_pts_to_avoid_obstacle.end(),i)!=ctrl_pts_to_avoid_obstacle.end())) {
         for (int j=0;j<6;j++) pt.positions[j] = poses[i-1][j];
         for (int j=0;j<6;j++) pt.velocities[j] = 0.0;
         for (int j=0;j<6;j++) pt.accelerations[j] = 0.0;

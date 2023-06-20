@@ -33,10 +33,14 @@ namespace fs = std::filesystem;
 namespace stap_test {
 
 jsk_rviz_plugins::OverlayText gen_overlay_text(std::string txt);
+std::vector<float> transform_pose_to_UF(std::vector<float> input_pose, Eigen::Isometry3f transform_to_world_inv);
+std::vector<float> transform_pose_to_SW(std::vector<float> input_pose, Eigen::Isometry3f transform_to_world);
+std::vector<float> transform_point_to_SW(std::vector<float> p, Eigen::Isometry3f transform_to_world);
+std::vector<float> transform_point_to_UF(std::vector<float> p, Eigen::Isometry3f transform_to_world_inv);
 
 class human {
     public:
-        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num);
+        human(ros::NodeHandle nh, int idx, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub, float prediction_dt, int test_num, Eigen::Isometry3f transform_to_world);
         void get_predicted_motion(std::vector<float> start_pose);
         void show_human(std::vector<float> link_len,std::vector<float> link_r);
         void get_last_pose(std::vector<float>& pose) {
@@ -80,10 +84,16 @@ class human {
         float prediction_dt = 0.1;
         int show_human_rate = 50;
         std::vector<std::tuple<float,std::vector<float>,std::vector<float>,Eigen::MatrixXd>> nom_sequence;
+        Eigen::Isometry3f transform_to_world;
+        Eigen::Isometry3f transform_to_world_inv;
+        std::vector<float> transform_pose_to_UF(std::vector<float> input_pose);
+        std::vector<float> transform_point_to_SW(std::vector<float> p);
+        std::vector<float> transform_point_to_UF(std::vector<float> p);
+        std::vector<float> transform_pose_to_SW(std::vector<float> input_pose);
 };
 class humans {
     public:
-        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num);
+        humans(ros::NodeHandle nh, std::vector<float> cur_pose, std::shared_ptr<ros::ServiceClient> predictor,std::shared_ptr<ros::Publisher> seq_pub,std::shared_ptr<avoidance_intervals::skeleton> skel, std::shared_ptr<ros::Publisher> pub_txt, int test_num,Eigen::Isometry3f transform_to_world);
         void predicted_motion(void);
         void show_predictions(std::vector<float> link_len,std::vector<float> link_r);
         float pub_model(int start_seq, int robot_step, float start_tm_in_robot_seq);
@@ -132,6 +142,8 @@ class humans {
         std::shared_ptr<ros::Publisher> pub_txt;
         ros::Publisher wrist_trace_pub;
         ros::Publisher reach_tgt_pub;
+        Eigen::Isometry3f transform_to_world;
+        Eigen::Isometry3f transform_to_world_inv;
 };
 class robot_segment {
     public:

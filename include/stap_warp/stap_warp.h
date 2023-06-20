@@ -63,5 +63,6 @@ class stap_warper {
         double connection_min_dist = 0.5;
         std::string plan_group;
         std::vector<std::string> joint_names;
+        double goal_stop_tolerance = 0.7;
 };
 }

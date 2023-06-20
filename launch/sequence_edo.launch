@@ -5,10 +5,10 @@
     <arg name="avoid_time_offset" default="0.0" />
     <arg name="num_tests" default="1" />
     <arg name="stap_offset" default="0" />
-    <rosparam file="$(find stap_warp)/config/tests.yaml" />
+    <rosparam file="$(find stap_warp)/config/edo/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
-    <rosparam file="$(find stap_warp)/config/stap_config.yaml" />
+    <rosparam file="$(find stap_warp)/config/edo/stap_config.yaml" />
     <param  name="stap_offset" value="$(arg stap_offset)"/>
     <param  name="test_num" value="$(arg test)"/>
     <param  name="planning_time" value="$(arg planning_time)"/>
