@@ -37,7 +37,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
     float dt = prediction_dt;
     bool some_points = false;
     for (s=start_seq;s<data.size();s++) {
-        ROS_INFO_STREAM("prior:"<<data[s].get_prior_robot_task()<<",robot_step"<<robot_step);
+        // ROS_INFO_STREAM("prior:"<<data[s].get_prior_robot_task()<<",robot_step"<<robot_step);
         if (data[s].get_prior_robot_task()>=robot_step) break;
         if ((data[s].get_start_delay()>0.0)&&(data[s].get_seq_size()>0))  {
             float start_tm = elapsed_tm;
@@ -45,7 +45,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                 if (elapsed_tm>0) {
                     stap_warp::joint_seq_elem seq_elem;
                     seq_elem.time = elapsed_tm;
-                    ROS_INFO_STREAM("seq time1:"<<seq_elem.time);
+                    // ROS_INFO_STREAM("seq time1:"<<seq_elem.time);
                     seq_elem.joint_pos = std::get<1>(data[s].get_seq(0));
                     seq_elem.quats = std::get<2>(data[s].get_seq(0));
                     seq_msg.sequence.push_back(seq_elem);
@@ -54,10 +54,10 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
                 elapsed_tm += dt;
             }
         }
-        ROS_INFO_STREAM("adding prediction for human step "<<s);
+        // ROS_INFO_STREAM("adding prediction for human step "<<s);
         for (int i=0;i<data[s].get_seq_size();i++) {
             float seq_time = std::get<0>(data[s].get_seq(i))+elapsed_tm;
-            ROS_INFO_STREAM("seq time2:"<<seq_time<<", elpased tm:"<<elapsed_tm<<" from human "<<s<<", step "<<i<<", tm "<<std::get<0>(data[s].get_seq(i)));
+            // ROS_INFO_STREAM("seq time2:"<<seq_time<<", elpased tm:"<<elapsed_tm<<" from human "<<s<<", step "<<i<<", tm "<<std::get<0>(data[s].get_seq(i)));
             if (seq_time>=0.0) {
                 stap_warp::joint_seq_elem seq_elem;
                 seq_elem.time = seq_time;
@@ -73,7 +73,7 @@ float humans::pub_model(int start_seq, int robot_step, float start_tm_in_robot_s
         if ((data[s-1].get_seq_size()>0)) {
             stap_warp::joint_seq_elem seq_elem;
             seq_elem.time = 0.0;
-            ROS_INFO_STREAM("seq time3:"<<seq_elem.time<<","<<s-1);
+            // ROS_INFO_STREAM("seq time3:"<<seq_elem.time<<","<<s-1);
             seq_elem.joint_pos = std::get<1>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
             seq_elem.quats = std::get<2>(data[s-1].get_seq(data[s-1].get_seq_size()-1));
             seq_msg.sequence.push_back(seq_elem);
@@ -828,6 +828,25 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     {
       ROS_ERROR("/test_sequence/1/robot_poses/length is not defined in sequence.yaml");
     }
+
+    if (!nh.getParam("/sequence_test/output_positions",output_positions))
+    {
+      ROS_WARN("/sequence_test/output_positions is not set");
+    }
+    ROS_INFO_STREAM(output_positions ? "outputting positions":"not outputting positions");
+
+    if (!nh.getParam("/sequence_test/tip_link",tip_link))
+    {
+      ROS_WARN("/sequence_test/tip_link is not set");
+    }
+    ROS_INFO_STREAM("tip_link:"<<tip_link);
+
+    if (!nh.getParam("/sequence_test/tip_offset",tip_offset))
+    {
+      ROS_WARN("/sequence_test/tip_offset is not set");
+    }
+    ROS_INFO_STREAM("tip_offset:"<<tip_offset);
+
     std::vector<double> pose(6);
     for (int i=0; i<num_robot_poses;i++) {
         nh.getParam("/test_sequence/1/robot_poses/"+std::to_string(i), pose);
@@ -918,7 +937,7 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     mkr.header.frame_id = "world";
     mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
     pub_txt->publish(gen_overlay_text("robot plan:" + std::to_string(seg_num) + "-" + data[seg_num].description));
-    ROS_INFO_STREAM("planning for segment:"<<seg_num);
+    ROS_INFO_STREAM("planning for segment:"<<seg_num<<" with goal id:"<<data[seg_num].get_goal_id());
     if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group))
         std::cout << "Created a directory\n";
     else
@@ -947,6 +966,13 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
             data[seg_num].plan.trajectory_ = trajectories[0];
             data[seg_num].plan.planning_time_ = planning_times[0];
             bag.close();
+            if (output_positions) {
+                state->setVariablePositions(data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions);
+                const Eigen::Affine3d& tip_tf = state->getGlobalLinkTransform(tip_link);
+                Eigen::Vector3d tip_pos = tip_tf.translation()+tip_tf.rotation()*Eigen::Vector3d(0,0,tip_offset);
+                Eigen::Quaterniond tip_q(tip_tf.rotation());
+                ROS_INFO_STREAM("tip_pos:"<<tip_pos[0]<<","<<tip_pos[1]<<","<<tip_pos[2]<<","<<tip_q.w()<<","<<tip_q.x()<<","<<tip_q.y()<<","<<tip_q.z());
+            }
             return planning_times[0];
         } else {
             move_group.setPlanningPipelineId(data[seg_num].pipeline);
@@ -983,6 +1009,13 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
                 bag.write("sequence_" + std::to_string(seg_num) + "_trajectorie",ros::Time::now(),plan.trajectory_);
                 bag.close();
                 start_joint = plan.trajectory_.joint_trajectory.points.back().positions;
+                if (output_positions) {
+                    state->setVariablePositions(data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions);
+                    const Eigen::Affine3d& tip_tf = state->getGlobalLinkTransform(tip_link);
+                    Eigen::Vector3d tip_pos = tip_tf.translation()+tip_tf.rotation()*Eigen::Vector3d(0,0,tip_offset);
+                    Eigen::Quaterniond tip_q(tip_tf.rotation());
+                    ROS_INFO_STREAM("tip_pos:"<<tip_pos[0]<<","<<tip_pos[1]<<","<<tip_pos[2]<<","<<tip_q.w()<<","<<tip_q.x()<<","<<tip_q.y()<<","<<tip_q.z());
+                }
                 return plan_time;
             } else {
                 ROS_ERROR("planning failed");

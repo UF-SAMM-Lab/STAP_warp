@@ -213,5 +213,8 @@ class robot_sequence {
         void set_occupancy(std::vector<Eigen::Vector3f> avoid_pts);
         std::string plan_group;
         std::vector<std::string> link_names;
+        bool output_positions = false;
+        std::string tip_link = "";
+        double tip_offset = 0.05;
 };
 }

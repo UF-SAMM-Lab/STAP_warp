@@ -11,3 +11,5 @@ warp:
   connection_min_dist: 0.3
   goal_stop_tolerance: 0.7
   scale_jnt_ids: [3,4,5,8]
+  minimum_distance: 0.20
+  reaction_time: 0.17

@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::AsyncSpinner spinner(1);
     spinner.start();
-
+    
     std::shared_ptr<avoidance_intervals::skeleton> test_skeleton = std::make_shared<avoidance_intervals::skeleton>(nh,"/predicted_skeleton",0.05,0.1);
 
     Eigen::Vector3f workspace_lb={-1,-1,0.5};
@@ -233,6 +233,8 @@ int main(int argc, char** argv) {
       transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
     }
     ROS_INFO_STREAM(transform_to_world.matrix());
+    
+    human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
 
     std::vector<float> human_link_lengths;// = {0.569,0.194,0.328,0.285,0.357,0.285,0.45}; 
     std::vector<float> human_link_radii;// = {0.12,0.05,0.1,0.04,0.03,0.04,0.03}; 
@@ -381,7 +383,7 @@ int main(int argc, char** argv) {
     //setup the human predictors
     std::shared_ptr<ros::Publisher> human_pub = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::MarkerArray>("predicted_human", 0,false));
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
-    human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
+    
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
     int human_seq = 0;

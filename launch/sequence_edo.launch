@@ -23,9 +23,12 @@
            value="gdb --ex run --args" /> 
     <arg name="simulated" default="false" />
     <arg name="cell" default="edo"/>
+    <arg name="output_positions" default="false"/>
+    <arg name="tip_link" default="edo_link_ee_tip"/>
+    <arg name="tip_offset" default="0.05"/>
     <param  name="sequence_test/cell" value="$(arg cell)"/>
 
-    <rosparam file="$(find stap_warp)/config/sequence.yaml" command="load"/>
+    <rosparam file="$(find stap_warp)/config/edo/sequence.yaml" command="load"/>
 
     <rosparam file="$(find uf_edo_safety)/config/safety.yaml" command="load"/>
     <include file="$(find uf_edo_safety)/launch/safety.launch"/>
@@ -34,6 +37,9 @@
     <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
     <node name="sequence_test" pkg="stap_warp" type="sequence_test" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
         <param name="simulated" value="$(arg simulated)"/>
+        <param name="output_positions" value="$(arg output_positions)"/>
+        <param name="tip_link" value="$(arg tip_link)"/>
+        <param name="tip_offset" value="$(arg tip_offset)"/>
     </node> 
     <!-- launch-prefix="gdb -ex run  -args"> -->
     <!-- "gdb -.-ex run -.-args"  -->

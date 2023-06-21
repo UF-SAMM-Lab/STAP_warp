@@ -30,6 +30,10 @@ find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
 
+add_library(inverse_kinematics
+  src/inverse_kinematics/ik_seed_search.cpp
+)
+
 add_service_files(
   FILES
   human_prediction.srv
@@ -120,6 +124,22 @@ target_link_libraries(sequence_test
 )
 add_dependencies(sequence_test ${catkin_EXPORTED_TARGETS})
 install(TARGETS sequence_test DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(sw_get_angles src/sharework_get_angles.cpp)
+target_link_libraries(sw_get_angles
+  ${catkin_LIBRARIES}
+  inverse_kinematics
+)
+add_dependencies(sw_get_angles ${catkin_EXPORTED_TARGETS})
+install(TARGETS sw_get_angles DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(sw_test_pos src/sharework_test_position.cpp)
+target_link_libraries(sw_test_pos
+  ${catkin_LIBRARIES}
+  inverse_kinematics
+)
+add_dependencies(sw_test_pos ${catkin_EXPORTED_TARGETS})
+install(TARGETS sw_test_pos DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Install ##

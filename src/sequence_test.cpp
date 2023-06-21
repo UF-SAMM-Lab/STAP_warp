@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/sequence_test/simulated",simulated))
     {
       ROS_WARN("/sequence_test/simulated is not set");
-    }
+    }   
     
     ros::Publisher pub_cancel_traj = nh.advertise<actionlib_msgs::GoalID>( ctrl_ns+"/follow_joint_trajectory/cancel", 0,false);
     actionlib_msgs::GoalID goal_id_msg;
@@ -121,6 +121,16 @@ int main(int argc, char** argv) {
     }
     std::cout<<std::endl;
 
+    std::vector<double> workcell_transform(7,0.0);
+    workcell_transform[6] = 1.0;
+    Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
+    if (nh.getParam("/test_sequence/1/workcell_transform", workcell_transform)) {
+      transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
+      transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
+    }
+    ROS_INFO_STREAM(transform_to_world.matrix());
+    human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
+
     std::string resp = "y";
     clearObstacles();
 
@@ -131,19 +141,15 @@ int main(int argc, char** argv) {
     moveit_msgs::ApplyPlanningScene srv;
     moveit_msgs::PlanningScene planning_scene_msg;
     planning_scene_msg.is_diff = true;
-    planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.4,0.3,0.15),Eigen::Vector3f(-0.4,0.4,0.075),Eigen::Quaternionf(0,1,0,0),"fixtures"));
+    Eigen::Vector3f box_origin(-0.4,0.4,0.075);
+    box_origin = transform_to_world*box_origin;
+    Eigen::Quaternionf box_quat(0,1,0,0);
+    box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+    planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.4,0.3,0.15),box_origin,box_quat,"fixtures"));
     srv.request.scene = planning_scene_msg;
     // srv.request. = ps_ptr->getAllowedCollisionMatrix();
     planning_scene_diff_client.call(srv);
 
-    std::vector<double> workcell_transform(7,0.0);
-    workcell_transform[6] = 1.0;
-    Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
-    if (nh.getParam("/sequence_test/workcell_transform", workcell_transform)) {
-      transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
-      transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
-    }
-    ROS_INFO_STREAM(transform_to_world.matrix());
 
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
@@ -153,6 +159,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<avoidance_intervals::skeleton> test_skeleton = std::make_shared<avoidance_intervals::skeleton>(nh,"/predicted_skeleton",0.05,0.1);
     std::shared_ptr<ros::Publisher> human_pub = std::make_shared<ros::Publisher>(nh.advertise<visualization_msgs::MarkerArray>("predicted_human", 0,false));
     // std::shared_ptr<ros::Publisher> human_model_pub = std::make_shared<ros::Publisher>(nh.advertise<stap_warp::joint_seq>("human_model_seq", 0,false));
+    
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
     std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,1,transform_to_world);
@@ -189,12 +196,6 @@ int main(int argc, char** argv) {
     std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
     stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr,pub_txt);
     human_data->predicted_motion();
-    human_data->generate_full_sequence(0,0,0.0);
-    human_data->save_full_seq("sequence_human.csv");
-    human_data->generate_full_sequence(5,10,0.0);
-    human_data->save_full_seq("sequence_human2.csv");
-    human_data->generate_full_sequence(14,18,0.0);
-    human_data->save_full_seq("sequence_human3.csv");
     human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
     //pre-plan all robot motions
