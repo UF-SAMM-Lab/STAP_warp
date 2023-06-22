@@ -1,5 +1,7 @@
 test_sequence:
   "1":
+    add_collision_box: true
+    collision_box_origin_xyz_wxyz_dims: [0.399758,0.4,1.075,-0,0.707214,-0.707,0,0.4,0.3,0.15]
     workcell_transform: [0.0,0.0,1.0,0.707,0,0,-0.707]
     planning_time: 7.0
     robot_positions:
@@ -22,8 +24,8 @@ test_sequence:
       "0": [0.000120783,-0.399879,1.11,0.000113495,0.382728,0.923861,-0.000273731]
       "1": [-0.05,0.452894,1.11,0.000250186,0.00044629,1,0.000158797]
       "2": [-0.05,0.452894,0.925,0.000250186,0.00044629,1,0.000158797]
-      "3": [0.352281,-0.034883,1.11,0.0,0.70710678118,-0.70710678118,0.0]
-      "4": [0.352262,-0.034883,1.05,0.0,0.70710678118,-0.70710678118,0.0]
+      "3": [0.32,-0.034883,1.11,0.0,0.70710678118,-0.70710678118,0.0]
+      "4": [0.32,-0.034883,1.05,0.0,0.70710678118,-0.70710678118,0.0]
       "5": [0,0,0,0,0,0]
       "6": [0,0,0,0,0,0]
       "7": [-0.05,0.531,1.11,0.000250186,0.00044629,1,0.000158797]
@@ -37,8 +39,8 @@ test_sequence:
       "0": [2.2995,-1.88062,2.0405,-1.73022,1.56967,-1.51353]
       "1": [0.0775783,-2.04998,2.13965,-1.66006,1.56922,-0.0761876]
       "2": [0.0770145,-2.0277,1.80206,-1.34477,1.56969,-0.0761556]
-      "3": [1.44067,-1.71827,1.91826,-1.77075,1.57024,-3.01103]
-      "4": [1.44052,-1.73318,1.82441,-1.662,1.5703,-3.01107]
+      "3": [1.43319,-1.77553,1.96457,-1.75981,1.5702,-3.00352]
+      "4": [1.43304,-1.78948,1.86925,-1.65054,1.57026,-3.00356]
       "5": [0.786,0.867,0.886,0,1.387,-0.776]
       "6": [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
       "7": [0.0649718,-1.90778,2.05828,-1.72077,1.56924,-0.0635828]
@@ -273,7 +275,7 @@ test_sequence:
       length: 21
       start_pose: []  
       simulated_switch_times: [0.0]  
-      show_human_rate: 20
+      show_human_rate: 50
       "0":
         description: "right arm start pose"
         after_robot_task: 0
@@ -295,7 +297,7 @@ test_sequence:
         after_robot_task: 1
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.25,0.31,1.05] #[-0.31,0.25,1.05]
+        reach_target: [0.1,0.31,1.05] #[-0.31,0.25,1.05]
         arm: "right"
         check_pos: true
       "3":
@@ -319,7 +321,7 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.4,0,1.1] #[-0.0,0.4,1.1]
+        reach_target: [0.32,0,1.1] #[-0.0,0.4,1.1]
         arm: "right"
         check_pos: true
       "6":
@@ -335,7 +337,7 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.5,-0.2,1.00] #[0.2,0.5,1.00]
+        reach_target: [0.32,-0.3,1.00] #[0.2,0.5,1.00]
         end_delay: 2.0
         arm: "left"
         check_pos: true
@@ -344,16 +346,16 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.4,0.0,1.05] #[-0.0,0.4,1.05]
+        reach_target: [0.32,0.0,1.05] #[-0.0,0.4,1.05]
         end_delay: 0.0
         arm: "left"
         check_pos: true
       "9":
-        description: "put the piston rod assembly into the block"
+        description: "put the piston rod assembly on the table"
         after_robot_task: 10
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.4,0.2,1.05] #[-0.2,0.4,1.05]
+        reach_target: [0.32,0.3,1.05] #[-0.2,0.4,1.05]
         end_delay: 0.0
         arm: "left"
         check_pos: true
@@ -377,7 +379,7 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.25,0.39,1.05] #[-0.39,0.25,1.05]
+        reach_target: [0.1,0.39,1.05] #[-0.39,0.25,1.05]
         arm: "right"
         check_pos: true
       "12":
@@ -401,7 +403,7 @@ test_sequence:
         after_robot_task: 18
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.4,0.0,1.1] #[-0.0,0.4,1.1]
+        reach_target: [0.32,0.0,1.1] #[-0.0,0.4,1.1]
         arm: "right"
         check_pos: true
       "15":
@@ -417,7 +419,7 @@ test_sequence:
         after_robot_task: 18
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.5,-0.2,1.00] #[0.2,0.5,1.00]
+        reach_target: [0.32,-0.35,1.00] #[0.2,0.5,1.00]
         end_delay: 0.0
         arm: "left"
         check_pos: true
@@ -426,16 +428,16 @@ test_sequence:
         after_robot_task: 18
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.4,0.0,1.05] #[-0.0,0.4,1.05]
+        reach_target: [0.32,0.0,1.05] #[-0.0,0.4,1.05]
         end_delay: 0.0
         arm: "left"
         check_pos: true
       "18":
-        description: "put the piston rod assembly 2 into the block"
+        description: "put the piston rod assembly 2 on the table"
         after_robot_task: 18
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.4,0.2,1.05] #[-0.2,0.4,1.05]
+        reach_target: [0.32,0.35,1.05] #[-0.2,0.4,1.05]
         end_delay: 0.0
         arm: "left"
         check_pos: true
@@ -454,4 +456,57 @@ test_sequence:
         start_delay: 0.0
         reach_target: [0.8,0.2,0.9] #[-0.2,0.8,0.9]
         arm: "right"
+        check_pos: false
+  "2":
+    add_collision_box: false
+    workcell_transform: [0.0,0.0,1.0,0.707,0,0,-0.707]
+    planning_time: 7.0
+    robot_positions:
+      length: 1
+      "0": [0.4,0.0,0.11,0.000273793,-0.382499,0.923956,-0.000113345]
+    robot_positions_at:
+      length: 1
+      "0": [0.000120783,-0.399879,1.11,0.000113495,0.382728,0.923861,-0.000273731]
+    robot_poses:
+      length: 1
+      "0": [2.2995,-1.88062,2.0405,-1.73022,1.56967,-1.51353]
+    robot_sequence:
+      length: 2
+      nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt, dirrt
+      nonrestrictive_planner: irrta #irrta, dirrt_paper, multigoal_ssm_test
+      "0":
+        description: "open gripper"
+        type: 2
+        pct: 50
+        after_human_task: -1
+        start_delay: 0.0
+      "1":
+        description: "go to start position"
+        type: 0
+        goal: 0
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+    human_sequence:
+      length: 2
+      start_pose: []  
+      simulated_switch_times: [0.0]  
+      show_human_rate: 50
+      "0":
+        description: "right arm start pose"
+        after_robot_task: 0
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.8,0.2,0.9] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "1":
+        description: "left arm start pose"
+        after_robot_task: 0
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.8,-0.2,0.9] #[0.2,0.8,0.9]
+        arm: "left"
         check_pos: false

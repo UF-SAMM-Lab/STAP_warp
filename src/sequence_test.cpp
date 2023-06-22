@@ -25,7 +25,7 @@ std::vector<float> human_quat_pose = {-1.737439036369323730e-01,9.08552944660186
 void goal_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg) {
   std::lock_guard<std::mutex> lck(goal_mtx);
   goal_id = msg->goal_id.id;
-  ROS_INFO_STREAM("read"<<goal_id);
+  // ROS_INFO_STREAM("read"<<goal_id);
 }
 
 // void segment_thread(moveit::planning_interface::MoveGroupInterface::Plan plan) {
@@ -69,6 +69,11 @@ int main(int argc, char** argv) {
     if (!nh.getParam("/sequence_test/simulated",simulated))
     {
       ROS_WARN("/sequence_test/simulated is not set");
+    }  
+    int test_num = 1; 
+    if (!nh.getParam("/sequence_test/test_num",test_num))
+    {
+      ROS_WARN("/sequence_test/test_num is not set");
     }   
     
     ros::Publisher pub_cancel_traj = nh.advertise<actionlib_msgs::GoalID>( ctrl_ns+"/follow_joint_trajectory/cancel", 0,false);
@@ -124,7 +129,7 @@ int main(int argc, char** argv) {
     std::vector<double> workcell_transform(7,0.0);
     workcell_transform[6] = 1.0;
     Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
-    if (nh.getParam("/test_sequence/1/workcell_transform", workcell_transform)) {
+    if (nh.getParam("/test_sequence/" + std::to_string(test_num) + "/workcell_transform", workcell_transform)) {
       transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
       transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
     }
@@ -134,6 +139,12 @@ int main(int argc, char** argv) {
     std::string resp = "y";
     clearObstacles();
 
+    bool add_collision_box = false; 
+    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/add_collision_box",add_collision_box))
+    {
+      ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/add_collision_box is not set");
+    } 
+
     moveit::planning_interface::PlanningSceneInterface current_scene;
     // add collision box object to avoid hitting fixtures
     ros::ServiceClient planning_scene_diff_client = nh.serviceClient<moveit_msgs::ApplyPlanningScene>("apply_planning_scene");
@@ -141,15 +152,22 @@ int main(int argc, char** argv) {
     moveit_msgs::ApplyPlanningScene srv;
     moveit_msgs::PlanningScene planning_scene_msg;
     planning_scene_msg.is_diff = true;
-    Eigen::Vector3f box_origin(-0.4,0.4,0.075);
-    box_origin = transform_to_world*box_origin;
-    Eigen::Quaternionf box_quat(0,1,0,0);
-    box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
-    planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.4,0.3,0.15),box_origin,box_quat,"fixtures"));
-    srv.request.scene = planning_scene_msg;
-    // srv.request. = ps_ptr->getAllowedCollisionMatrix();
-    planning_scene_diff_client.call(srv);
-
+    if (add_collision_box) {
+      std::vector<double> box_params; 
+      if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_box_origin_xyz_wxyz_dims",box_params))
+      {
+        ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_box_origin_xyz_wxyz_dims is not set");
+      } 
+      Eigen::Vector3f box_origin(box_params[0],box_params[1],box_params[2]);
+      // box_origin = transform_to_world*box_origin;
+      Eigen::Quaternionf box_quat(box_params[3],box_params[4],box_params[5],box_params[6]);
+      // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+      std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
+      planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(box_params[7],box_params[8],box_params[9]),box_origin,box_quat,"fixtures"));
+      srv.request.scene = planning_scene_msg;
+      // srv.request. = ps_ptr->getAllowedCollisionMatrix();
+      planning_scene_diff_client.call(srv);
+    }
 
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
@@ -162,7 +180,7 @@ int main(int argc, char** argv) {
     
     skel_mtx.lock();
     std::cout<<human_quat_pose.size()<<std::endl;
-    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,1,transform_to_world);
+    std::shared_ptr<stap_test::humans> human_data = std::make_shared<stap_test::humans>(nh,human_quat_pose,predictor,human_pub,test_skeleton,pub_txt,test_num,transform_to_world);
     skel_mtx.unlock();
     human_data->set_dimensions(human_link_lengths,human_link_radii);
 
@@ -257,6 +275,7 @@ int main(int argc, char** argv) {
       if (robot_step>=robot_data.num_segments()) break;
       if (!robot_data.is_segment_active()) {
         if (robot_data.get_prior_human_step(robot_step)<human_step) {
+          ROS_INFO_STREAM("starting robot step:"<<robot_step);
           robot_data.do_segment(robot_step);
           robot_step++;
         } else {

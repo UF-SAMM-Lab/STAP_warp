@@ -147,7 +147,7 @@ class humans {
 };
 class robot_segment {
     public:
-        robot_segment(ros::NodeHandle nh, int idx);
+        robot_segment(ros::NodeHandle nh, int idx, int test_num);
         double planned_time = 0.0;
         int get_goal_id(void){return goal_id;}
         int get_type(void){return type;}
@@ -216,5 +216,6 @@ class robot_sequence {
         bool output_positions = false;
         std::string tip_link = "";
         double tip_offset = 0.05;
+        int test_num = 1;
 };
 }

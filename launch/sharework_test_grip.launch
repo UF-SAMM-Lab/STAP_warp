@@ -1,0 +1,14 @@
+<launch>
+    <arg name="open" default="false" />
+    <arg name="debug" default="false" />
+    <arg unless="$(arg debug)" name="launch_prefix" value="" />
+    <arg     if="$(arg debug)" name="launch_prefix"
+           value="gdb --ex run --args" /> 
+
+    <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
+    <node name="sw_test_grip" pkg="stap_warp" type="sw_test_grip" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
+        <param name="open" value="$(arg open)"/>
+    </node> 
+    <!-- launch-prefix="gdb -ex run  -args"> -->
+    <!-- "gdb -.-ex run -.-args"  -->
+</launch>

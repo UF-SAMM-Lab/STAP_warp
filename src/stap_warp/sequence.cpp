@@ -816,17 +816,23 @@ int human::get_seq_size(void) {
 }
 
 robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr state, robot_model::RobotModelPtr model, std::string plan_group, std::shared_ptr<stap_test::humans> human_data,std::shared_ptr<data_recorder> rec,const planning_scene::PlanningScenePtr &planning_scene_,std::shared_ptr<ros::Publisher> pub_txt):nh(nh),state(state),model(model),plan_group(plan_group),move_group(plan_group),human_data(human_data),rec(rec),stap_warper(nh,move_group.getCurrentState(),model,planning_scene_,plan_group),pub_txt(pub_txt) {
-    if (!nh.getParam("/test_sequence/1/robot_sequence/length", num_steps))
+     
+    if (!nh.getParam("/sequence_test/test_num",test_num))
     {
-      ROS_ERROR("/test_sequence/1/robot_sequence/length is not defined in sequence.yaml");
+      ROS_WARN("/sequence_test/test_num is not set");
+    }  
+
+    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/length", num_steps))
+    {
+      ROS_ERROR_STREAM("/test_sequence/"<<test_num<<"/robot_sequence/length is not defined in sequence.yaml");
     }
     for (int i=0; i<num_steps;i++) {
-        data.emplace_back(nh,i);
+        data.emplace_back(nh,i,test_num);
     }    
     int num_robot_poses = 0;
-    if (!nh.getParam("/test_sequence/1/robot_poses/length", num_robot_poses))
+    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_poses/length", num_robot_poses))
     {
-      ROS_ERROR("/test_sequence/1/robot_poses/length is not defined in sequence.yaml");
+      ROS_ERROR_STREAM("/test_sequence/"<<test_num<<"/robot_poses/length is not defined in sequence.yaml");
     }
 
     if (!nh.getParam("/sequence_test/output_positions",output_positions))
@@ -849,7 +855,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
 
     std::vector<double> pose(6);
     for (int i=0; i<num_robot_poses;i++) {
-        nh.getParam("/test_sequence/1/robot_poses/"+std::to_string(i), pose);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_poses/"+std::to_string(i), pose);
         goals_angles.push_back(pose);
         std::cout<<"goal "<<i<<":";
         for (int q=0;q<6;q++) std::cout<<goals_angles.back()[q]<<",";
@@ -860,7 +866,7 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     move_group.setMaxVelocityScalingFactor(1.0);            //time parametrization
     move_group.setMaxAccelerationScalingFactor(1.0);    //time parametrization
     double planning_time = 5.0;
-    nh.getParam("/test_sequence/1/planning_time", planning_time);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/planning_time", planning_time);
     move_group.setPlanningTime(planning_time);
     planner_sub = nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&robot_sequence::perf_callback,this);
     last_perf_received = ros::Time::now();
@@ -940,9 +946,10 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     ROS_INFO_STREAM("planning for segment:"<<seg_num<<" with goal id:"<<data[seg_num].get_goal_id());
     if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group))
         std::cout << "Created a directory\n";
-    else
-        std::cerr << "Failed to create a directory\n";
-    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
+    
+    if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)))
+        std::cout << "Created a directory\n";
+    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)+ "/sequence_" + std::to_string(seg_num) + "_plan.bag";
     if (data[seg_num].get_type()==0) {
         if (access( bag_file.c_str(), F_OK ) != -1) {
             rosbag::Bag bag; 
@@ -1031,7 +1038,7 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
 void robot_sequence::goal_callback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg) {
   std::lock_guard<std::mutex> lck(goal_mtx);
   goal_id = msg->goal_id.id;
-  ROS_INFO_STREAM("read"<<goal_id);
+//   ROS_INFO_STREAM("read"<<goal_id);
 }
 
 void robot_sequence::segment_thread_fn(int seg_num) {
@@ -1212,30 +1219,30 @@ void robot_sequence::set_gripper(bool open) {
     grip_pub.publish(gripper_msg);
 }
 
-robot_segment::robot_segment(ros::NodeHandle nh, int idx) {
+robot_segment::robot_segment(ros::NodeHandle nh, int idx, int test_num) {
     id = idx;
     std::cout<<"robot seg "<<idx<<":";
-    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/description", description);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/description", description);
     std::cout<<description<<",";
-    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/goal", goal_id);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/goal", goal_id);
     std::cout<<" goal id:"<<goal_id<<",";
-    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/type", type);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/type", type);
     std::cout<<" type:"<<type<<",";
     if (type>0) {
-        nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/pct", gripper_pct);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/pct", gripper_pct);
     }
-    nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/after_human_task", prior_human_task);
     std::cout<<" prior_human_task:"<<prior_human_task<<std::endl;
     bool use_nonrestrictive = false;
     bool tmp = false;
-    tmp = nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/use_nonrestrictive_planner",use_nonrestrictive);
+    tmp = nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/use_nonrestrictive_planner",use_nonrestrictive);
     tmp = tmp && use_nonrestrictive;
     if (tmp) {
-        nh.getParam("/test_sequence/1/robot_sequence/nonrestrictive_pipeline", pipeline);
-        nh.getParam("/test_sequence/1/robot_sequence/nonrestrictive_planner", planner);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/nonrestrictive_pipeline", pipeline);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/nonrestrictive_planner", planner);
     } else {
-        nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
-        nh.getParam("/test_sequence/1/robot_sequence/"+std::to_string(idx)+"/planner", planner);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/planner", planner);
     }
 }
 

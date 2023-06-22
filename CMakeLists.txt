@@ -23,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   velocity_scaling_iso15066
   message_generation
   jsk_rviz_plugins
+  manipulation_msgs
 )
 
 find_package(Boost REQUIRED COMPONENTS system filesystem)
@@ -140,6 +141,28 @@ target_link_libraries(sw_test_pos
 )
 add_dependencies(sw_test_pos ${catkin_EXPORTED_TARGETS})
 install(TARGETS sw_test_pos DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(sw_go_pos src/sharework_go_to_position.cpp)
+target_link_libraries(sw_go_pos
+  ${catkin_LIBRARIES}
+)
+add_dependencies(sw_go_pos ${catkin_EXPORTED_TARGETS})
+install(TARGETS sw_go_pos DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+add_executable(sw_test_grip src/sharework_test_gripper.cpp)
+target_link_libraries(sw_test_grip
+  ${catkin_LIBRARIES}
+)
+add_dependencies(sw_test_grip ${catkin_EXPORTED_TARGETS})
+install(TARGETS sw_test_grip DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+
+add_executable(sw_grip_int src/sharework_gripper_interpretter.cpp)
+target_link_libraries(sw_grip_int
+  ${catkin_LIBRARIES}
+)
+add_dependencies(sw_grip_int ${catkin_EXPORTED_TARGETS})
+install(TARGETS sw_grip_int DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############
 ## Install ##

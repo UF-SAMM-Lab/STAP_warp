@@ -73,6 +73,12 @@ int main(int argc, char** argv) {
   }  
 
    
+  int test_num = 1; 
+  if (!nh.getParam("/sequence_test/test_num",test_num))
+  {
+    ROS_WARN("/sequence_test/test_num is not set");
+  }  
+
   int pos_num = 0;
   if (!nh.getParam("/sw_test_pos/pos_num", pos_num))
   {
@@ -80,9 +86,9 @@ int main(int argc, char** argv) {
   }
 
    
-  if (!nh.getParam("/test_sequence/1/robot_positions_at/"+std::to_string(pos_num), desired_xyzq))
+  if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_positions_at/"+std::to_string(pos_num), desired_xyzq))
   {
-    ROS_ERROR_STREAM("/test_sequence/1/robot_positions_at/" << std::to_string(pos_num) << " is not defined in sequence.yaml");
+    ROS_ERROR_STREAM("/test_sequence/"<<test_num<<"/robot_positions_at/" << std::to_string(pos_num) << " is not defined in sequence.yaml");
   }
 
   //Initialization of the plans that will be used to correct the robot motion according to the specific behavior
@@ -105,6 +111,7 @@ int main(int argc, char** argv) {
 
   move_group.setPlanningPipelineId("ompl");
   move_group.setPlannerId("BiTRRT");
+  move_group.setStartStateToCurrentState();
   move_group.setMaxVelocityScalingFactor(1.0);            //time parametrization
   move_group.setMaxAccelerationScalingFactor(1.0); 
 

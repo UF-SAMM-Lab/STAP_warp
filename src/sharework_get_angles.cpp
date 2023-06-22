@@ -35,10 +35,16 @@ int main(int argc, char** argv) {
     ROS_WARN("ctrl_ns is not defined");
   }  
 
+  int test_num = 1; 
+  if (!nh.getParam("/sequence_test/test_num",test_num))
+  {
+    ROS_WARN("/sequence_test/test_num is not set");
+  }  
+
   std::vector<double> workcell_transform(7,0.0);
   workcell_transform[6] = 1.0;
   Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
-  if (nh.getParam("/test_sequence/1/workcell_transform", workcell_transform)) {
+  if (nh.getParam("/test_sequence/" + std::to_string(test_num) + "/workcell_transform", workcell_transform)) {
     transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
     transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
   }
@@ -46,9 +52,9 @@ int main(int argc, char** argv) {
 
    
   int num_robot_poses = 0;
-  if (!nh.getParam("/test_sequence/1/robot_positions/length", num_robot_poses))
+  if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_positions/length", num_robot_poses))
   {
-    ROS_ERROR("/test_sequence/1/robot_positions/length is not defined in sequence.yaml");
+    ROS_ERROR_STREAM("/test_sequence/"<<test_num<<"/robot_positions/length is not defined in sequence.yaml");
   }
 
 
@@ -93,7 +99,7 @@ int main(int argc, char** argv) {
 
   for (int i=0;i<num_robot_poses;i++) {
     if ((i==5)||(i==6)) continue;
-    nh.getParam("/test_sequence/1/robot_positions/"+std::to_string(i), pose);
+    nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_positions/"+std::to_string(i), pose);
     plan_success = false;
 
     std::cout<<std::endl;
