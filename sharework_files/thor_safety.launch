@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- <node pkg="obstacle_handler" name="obstacle_handler_node" type="obstacle_handler_node" output="log" >
+    <remap from="controlled_joints" to="planner_hw/joint_names"/>
+    <remap from="poses" to="/centroid_detection_rs1/poses"/>
+  </node> -->
+  <node pkg="velocity_scaling_iso15066" type="velocity_scaling_iso15066_node" name="safety" output="log">
+    <rosparam file="$(find sharework_cembre_safety)/config/thor_safety.yaml" command="load"/>
+    <!-- <remap from="poses" to="centroids"/> -->
+  </node>
+</launch>

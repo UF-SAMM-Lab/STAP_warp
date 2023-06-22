@@ -1,0 +1,15 @@
+base_frame: "base_link"
+tool_frame: "open_tip"
+test_links:
+- tool0
+- forearm_link
+- open_tip
+- wrist_1_link
+- upper_arm_link
+
+minimum_distance: 0.2
+reaction_time: 0.15
+
+#Information to publish obstacles
+publish_obstacles: false
+sphere_radius: 0.2

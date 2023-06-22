@@ -1,0 +1,957 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 0
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Global Options1
+        - /MotionPlanning1
+        - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Planning Request1
+        - /MotionPlanning1/Planned Path1
+        - /TF1/Frames1
+        - /Marker3
+        - /Marker4
+        - /Marker5
+        - /Marker6
+        - /Marker7
+        - /Marker8
+        - /OverlayText1
+      Splitter Ratio: 0.6619718074798584
+    Tree Height: 140
+  - Class: rviz/Help
+    Name: Help
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: configuration_gui/ConfigurationManager
+    Name: ConfigurationManager
+  - Class: rviz/Displays
+    Help Height: 70
+    Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+    Tree Height: 371
+  - Class: configuration_gui/ConfigurationManager
+    Name: ConfigurationManager
+  - Class: configuration_gui/ConfigurationManager
+    Name: ConfigurationManager
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Acceleration_Scaling_Factor: 0.1
+      Class: moveit_rviz_plugin/MotionPlanning
+      Enabled: true
+      Move Group Namespace: ""
+      MoveIt_Allow_Approximate_IK: false
+      MoveIt_Allow_External_Program: false
+      MoveIt_Allow_Replanning: false
+      MoveIt_Allow_Sensor_Positioning: false
+      MoveIt_Planning_Attempts: 10
+      MoveIt_Planning_Time: 5
+      MoveIt_Use_Cartesian_Path: false
+      MoveIt_Use_Constraint_Aware_IK: true
+      MoveIt_Workspace:
+        Center:
+          X: 0
+          Y: 0
+          Z: 0
+        Size:
+          X: 2
+          Y: 2
+          Z: 2
+      Name: MotionPlanning
+      Planned Path:
+        Color Enabled: false
+        Interrupt Display: false
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+          base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link_inertia:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          closed_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          cursor:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          flange:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          floor:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          forearm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          guide_fixed:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_column:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          lower_beam:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          open_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          portal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          rail:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_column:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          robotiq_coupler:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          robotiq_simplified:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          rq_connector:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          screwdriver_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          shoulder_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          table:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tool0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          upper_arm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          upper_beam:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          virtual_wall_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          virtual_wall_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wall:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          world:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          wrist_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wrist_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wrist_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+        Loop Animation: true
+        Robot Alpha: 0.5
+        Robot Color: 150; 50; 150
+        Show Robot Collision: false
+        Show Robot Visual: false
+        Show Trail: true
+        State Display Time: 0.2 s
+        Trail Step Size: 1
+        Trajectory Topic: move_group/display_planned_path
+        Use Sim Time: false
+      Planning Metrics:
+        Payload: 1
+        Show Joint Torques: false
+        Show Manipulability: false
+        Show Manipulability Index: false
+        Show Weight Limit: false
+        TextHeight: 0.07999999821186066
+      Planning Request:
+        Colliding Link Color: 255; 0; 0
+        Goal State Alpha: 1
+        Goal State Color: 250; 128; 0
+        Interactive Marker Size: 0
+        Joint Violation Color: 255; 0; 255
+        Planning Group: manipulator
+        Query Goal State: false
+        Query Start State: false
+        Show Workspace: false
+        Start State Alpha: 1
+        Start State Color: 0; 255; 0
+      Planning Scene Topic: move_group/monitored_planning_scene
+      Robot Description: robot_description
+      Scene Geometry:
+        Scene Alpha: 1
+        Scene Color: 50; 230; 50
+        Scene Display Time: 0.20000000298023224
+        Show Scene Geometry: true
+        Voxel Coloring: Z-Axis
+        Voxel Rendering: Occupied Voxels
+      Scene Robot:
+        Attached Body Color: 150; 50; 150
+        Links:
+          All Links Enabled: true
+          Expand Joint Details: false
+          Expand Link Details: false
+          Expand Tree: false
+          Link Tree Style: Links in Alphabetic Order
+          base:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          base_link_inertia:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          closed_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          cursor:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          flange:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          floor:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          forearm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          guide_fixed:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_column:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          lower_beam:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          open_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          portal:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          rail:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_column:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          robotiq_coupler:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          robotiq_simplified:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          rq_connector:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          screwdriver_holder:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          shoulder_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          table:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          tool0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          upper_arm_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          upper_beam:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          virtual_wall_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          virtual_wall_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wall:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          world:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+          wrist_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wrist_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          wrist_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+        Robot Alpha: 1
+        Show Robot Collision: false
+        Show Robot Visual: true
+      Value: true
+      Velocity_Scaling_Factor: 0.1
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /human_markers
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: rs1
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /camera/depth/color/points
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Min Color: 0; 0; 0
+      Name: rs2
+      Position Transformer: XYZ
+      Queue Size: 10
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
+      Topic: /camera2/depth/color/points
+      Unreliable: false
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Name: Safe override
+      Show Value: true
+      Topic: /safe_ovr_1_float
+      Value: true
+      auto color change: true
+      auto scale: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 239; 41; 41
+      height: 128
+      left: 1
+      linewidth: 1
+      max color: 115; 210; 22
+      max value: 100
+      min value: 0
+      show caption: true
+      text size: 12
+      top: 1
+      update interval: 0.03999999910593033
+      width: 128
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.10000000149011612
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Axes
+      Topic: /poses
+      Unreliable: false
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: false
+        base:
+          Value: false
+        base_link:
+          Value: false
+        base_link_inertia:
+          Value: false
+        camera2_link:
+          Value: false
+        camera_link:
+          Value: false
+        closed_tip:
+          Value: false
+        cursor:
+          Value: false
+        flange:
+          Value: false
+        floor:
+          Value: false
+        forearm_link:
+          Value: false
+        guide_fixed:
+          Value: false
+        left_column:
+          Value: false
+        lower_beam:
+          Value: false
+        open_tip:
+          Value: false
+        portal:
+          Value: false
+        rail:
+          Value: false
+        right_column:
+          Value: false
+        robotiq_coupler:
+          Value: false
+        robotiq_simplified:
+          Value: false
+        rq_connector:
+          Value: false
+        screwdriver_holder:
+          Value: false
+        shoulder_link:
+          Value: false
+        table:
+          Value: false
+        tool0:
+          Value: false
+        upper_arm_link:
+          Value: false
+        upper_beam:
+          Value: false
+        virtual_wall_1:
+          Value: false
+        virtual_wall_2:
+          Value: false
+        wall:
+          Value: false
+        world:
+          Value: true
+        wrist_1_link:
+          Value: false
+        wrist_2_link:
+          Value: false
+        wrist_3_link:
+          Value: false
+      Marker Alpha: 1
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        world:
+          camera2_link:
+            {}
+          camera_link:
+            {}
+          left_column:
+            {}
+          lower_beam:
+            {}
+          portal:
+            floor:
+              {}
+            wall:
+              {}
+          right_column:
+            {}
+          table:
+            rail:
+              {}
+            screwdriver_holder:
+              {}
+          upper_beam:
+            guide_fixed:
+              cursor:
+                base_link:
+                  base:
+                    {}
+                  base_link_inertia:
+                    shoulder_link:
+                      upper_arm_link:
+                        forearm_link:
+                          wrist_1_link:
+                            wrist_2_link:
+                              wrist_3_link:
+                                flange:
+                                  tool0:
+                                    robotiq_coupler:
+                                      closed_tip:
+                                        {}
+                                      open_tip:
+                                        {}
+                                      robotiq_simplified:
+                                        {}
+                                      rq_connector:
+                                        {}
+              virtual_wall_1:
+                {}
+          virtual_wall_2:
+            {}
+      Update Interval: 0
+      Value: true
+    - Class: rviz/Camera
+      Enabled: false
+      Image Rendering: background and overlay
+      Image Topic: /camera2/color/image_raw
+      Name: Camera
+      Overlay Alpha: 0.5
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: false
+      Visibility:
+        Grid: true
+        Marker: true
+        MarkerArray: true
+        MotionPlanning: true
+        OverlayText: true
+        PoseArray: true
+        Safe override: true
+        TF: true
+        Time: true
+        Value: true
+        hrc distance: true
+        rs1: true
+        rs2: true
+      Zoom Factor: 1
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.30000001192092896
+      Axes Radius: 0.009999999776482582
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: false
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Arrow (Flat)
+      Topic: /centroid_detection_rs2/centroid
+      Unreliable: false
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /skeleton_filtered
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Name: hrc distance
+      Show Value: true
+      Topic: /min_distance_from_poses
+      Value: true
+      auto color change: false
+      auto scale: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 237; 212; 0
+      height: 128
+      left: 140
+      linewidth: 1
+      max color: 115; 210; 22
+      max value: 100
+      min value: 0
+      show caption: true
+      text size: 12
+      top: 1
+      update interval: 0.03999999910593033
+      width: 128
+    - Buffer length: 100
+      Class: jsk_rviz_plugin/Plotter2D
+      Enabled: true
+      Name: Time
+      Show Value: true
+      Topic: /cycle_time
+      Value: true
+      auto color change: false
+      auto scale: false
+      background color: 0; 0; 0
+      backround alpha: 0
+      border: true
+      foreground alpha: 0.699999988079071
+      foreground color: 237; 212; 0
+      height: 128
+      left: 280
+      linewidth: 1
+      max color: 115; 210; 22
+      max value: 100
+      min value: 0
+      show caption: true
+      text size: 12
+      top: 1
+      update interval: 0.03999999910593033
+      width: 128
+    - Alpha: 1
+      Arrow Length: 0.30000001192092896
+      Axes Length: 0.10000000149011612
+      Axes Radius: 0.10000000149011612
+      Class: rviz/PoseArray
+      Color: 255; 25; 0
+      Enabled: true
+      Head Length: 0.07000000029802322
+      Head Radius: 0.029999999329447746
+      Name: PoseArray
+      Queue Size: 10
+      Shaft Length: 0.23000000417232513
+      Shaft Radius: 0.009999999776482582
+      Shape: Axes
+      Topic: /centroids
+      Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /warp_points
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /warp_points2
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /warp_points3
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /reaching_tgt_marker
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /predicted_wrist_traces
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /nominal_plan
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /predicted_human
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: false
+      Marker Topic: /marker_visualization_topic
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Align Bottom: true
+      Background Alpha: 0.800000011920929
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 0.800000011920929
+      Foreground Color: 25; 255; 240
+      Invert Shadow: false
+      Name: OverlayText
+      Overtake BG Color Properties: false
+      Overtake FG Color Properties: false
+      Overtake Position Properties: false
+      Topic: stap_description
+      Value: true
+      font: DejaVu Sans Mono
+      height: 128
+      left: 0
+      line width: 2
+      text size: 12
+      top: 0
+      width: 128
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz/XYOrbit
+      Distance: 3.123504877090454
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.28474605083465576
+        Y: 0.08935576677322388
+        Z: -0.89499831199646
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.20478253066539764
+      Target Frame: table
+      Yaw: 1.5785763263702393
+    Saved:
+      - Class: rviz/XYOrbit
+        Distance: 5
+        Enable Stereo Rendering:
+          Stereo Eye Separation: 0.05999999865889549
+          Stereo Focal Distance: 1
+          Swap Stereo Eyes: false
+          Value: false
+        Field of View: 0.7853981852531433
+        Focal Point:
+          X: 0.6212647557258606
+          Y: 1.2713850736618042
+          Z: -0.8949999809265137
+        Focal Shape Fixed Size: true
+        Focal Shape Size: 0.05000000074505806
+        Invert Z Axis: false
+        Name: XYOrbit
+        Near Clip Distance: 0.009999999776482582
+        Pitch: 0.48978379368782043
+        Target Frame: table
+        Yaw: 6.116769790649414
+Window Geometry:
+  Camera:
+    collapsed: false
+  ConfigurationManager:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1016
+  Help:
+    collapsed: false
+  Hide Left Dock: false
+  Hide Right Dock: true
+  MotionPlanning:
+    collapsed: false
+  MotionPlanning - Trajectory Slider:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd0000000300000000000001f30000039efc020000000bfc0000003d000000e6000000e60100001cfa000000010100000002fb0000000c00430061006d0065007200610100000000ffffffff0000006900fffffffb000000100044006900730070006c0061007900730100000000000003050000015600fffffffb0000000800480065006c00700000000191000000bb0000006e00fffffffb0000000a005600690065007700730000000144000000b7000000a400fffffffb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fc00000129000002b20000017d00fffffffa000000030100000004fb0000000c00430061006d0065007200610100000000ffffffff0000000000000000fb0000000c00430061006d0065007200610100000000ffffffff0000000000000000fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067010000000000000244000001f300fffffffb0000000c00430061006d0065007200610200000000000000000000078000000438fb0000000c00430061006d006500720061010000018d000002720000000000000000fb0000000a0049006d006100670065000000003d0000039e0000000000000000fb0000000a0049006d0061006700650000000206000001d50000000000000000fb000000100044006900730070006c00610079007300000002b300000128000000c900ffffff000000010000019a0000039bfc0200000003fc0000003d0000039b0000000000fffffffa000000000100000002fb0000000c00430061006d0065007200610100000000ffffffff0000000000000000fb000000280043006f006e00660069006700750072006100740069006f006e004d0061006e006100670065007200000005e90000014f0000011700fffffffb000000280043006f006e00660069006700750072006100740069006f006e004d0061006e0061006700650072000000003d0000039e0000025300fffffffb000000280043006f006e00660069006700750072006100740069006f006e004d0061006e0061006700650072000000003d0000039e0000025300ffffff00000002000004ad0000023afc0100000001fb0000000c00430061006d0065007200610100000290000004ad00000000000000000000053f0000039e00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Views:
+    collapsed: false
+  Width: 1848
+  X: 1752
+  Y: 27
