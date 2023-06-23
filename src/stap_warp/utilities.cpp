@@ -411,6 +411,8 @@ human_occupancy_helper::human_occupancy_helper(ros::NodeHandle nh):nh_(nh) {
     pc_pub=nh_.advertise<sensor_msgs::PointCloud>("/occupancy",1);
     centroids_pub = nh_.advertise<geometry_msgs::PoseArray>("/centroids",1);
 
+    pub_occ_vis = nh_.advertise<visualization_msgs::Marker>("human_occupancy_vis", 0,false);
+
     Eigen::Vector3d workspace_lb={-1,-1,0.5};
     Eigen::Vector3d workspace_ub={1,1,2.5};
     
@@ -439,6 +441,9 @@ void human_occupancy_helper::set_occupancy(std::vector<Eigen::Vector3f> avoid_pt
     pc_pose_array.poses.clear();
     pc_pose_array.header.frame_id="world";
     avoidance_intervals::display_markers(avoid_pts,obs_pts);
+    obs_pts.id = occupancy_id+2000;
+    occupancy_id++;
+    pub_occ_vis.publish(obs_pts);
     geometry_msgs::Pose pose;
     for (geometry_msgs::Point p:obs_pts.points) {
         pose.position = p;

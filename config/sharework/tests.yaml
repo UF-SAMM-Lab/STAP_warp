@@ -59,7 +59,7 @@ tests:
     log_file_name: prob_hamp_task1
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
-    planning_time: 120
+    planning_time: 5
     human_sequence_num: 0
     workcell_transform: [0.1,-0.2,1.0,0.707,0,0,-0.707]
 
@@ -120,7 +120,7 @@ tests:
     log_file_name: prob_hamp_task3
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
-    planning_time: 120
+    planning_time: 5
     human_sequence_num: 1
     workcell_transform: [0.0,-0.0,1.0,0.707,0,0,-0.707]
   "11":
@@ -180,7 +180,7 @@ tests:
     log_file_name: prob_hamp_gator_chomp
     use_collision_objects_initially: false
     use_collision_objects_continuously: false
-    planning_time: 120
+    planning_time: 5
     human_sequence_num: 2
     workcell_transform: [-0.1,-0.0,1.0,0.707,0,0,-0.707]
 

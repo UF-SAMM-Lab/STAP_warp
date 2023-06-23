@@ -128,8 +128,10 @@ class human_occupancy_helper {
   geometry_msgs::PoseArray pc_pose_array;
   ros::Publisher pc_pub;
   ros::Publisher centroids_pub;
+  ros::Publisher pub_occ_vis;
   sensor_msgs::PointCloud pc;
   ros::Timer pub_timer;
+  int occupancy_id=0;
   void set_occupancy_timer(const ros::TimerEvent& event);
 };
 

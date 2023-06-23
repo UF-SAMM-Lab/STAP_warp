@@ -282,7 +282,8 @@ int main(int argc, char** argv) {
 
     human_occupancy_helper human_occupany(nh);
     ros::Subscriber disp_sub = nh.subscribe<visualization_msgs::Marker>("/human_markers",1,disp_sub_callback);
-  
+    
+    // visualiations_msgs::Marker occ_vis_msg;
     if ((planner_id=="multigoal_ssm_test")||(planner_id=="prob_hamp_test")) {
       test_skeleton->publish_pts(avoid_pts);
       ros::Duration(2.0).sleep();
@@ -613,7 +614,7 @@ int main(int argc, char** argv) {
                   std::cout<<std::endl;
                   move_group.setPlanningPipelineId(planning_pipeline);
                   move_group.setPlannerId(planner_id);
-                  move_group.setPlanningTime(0.2);
+                  move_group.setPlanningTime(0.5);
                   state->setVariablePositions(rec.joint_positions);
                   move_group.setStartState(*state);
                   move_group.setJointValueTarget(goal_joint);

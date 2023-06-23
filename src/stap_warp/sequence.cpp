@@ -944,13 +944,15 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
     mkr.text = "robot plan:" + std::to_string(seg_num) + ":\n" + data[seg_num].description;
     pub_txt->publish(gen_overlay_text("robot plan:" + std::to_string(seg_num) + "-" + data[seg_num].description));
     ROS_INFO_STREAM("planning for segment:"<<seg_num<<" with goal id:"<<data[seg_num].get_goal_id());
-    if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group))
-        std::cout << "Created a directory\n";
-    
-    if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)))
-        std::cout << "Created a directory\n";
-    std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)+ "/sequence_" + std::to_string(seg_num) + "_plan.bag";
+
     if (data[seg_num].get_type()==0) {
+        if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group))
+            std::cout << "Created a directory\n";
+        if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)))
+            std::cout << "Created a directory\n";
+        if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)+"/"+data[seg_num].pipeline + "_" + data[seg_num].planner))
+            std::cout << "Created a directory\n";
+        std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num) + "/"+data[seg_num].pipeline + "_" + data[seg_num].planner + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
         if (access( bag_file.c_str(), F_OK ) != -1) {
             rosbag::Bag bag; 
             bag.open(bag_file, rosbag::bagmode::Read);
@@ -1062,7 +1064,7 @@ void robot_sequence::segment_thread_fn(int seg_num) {
         } else if (data[seg_num].pipeline=="dirrt") {
             move_group.setPlanningPipelineId(data[seg_num].pipeline);
             move_group.setPlannerId(data[seg_num].planner);
-            move_group.setPlanningTime(0.5);
+            move_group.setPlanningTime(1.0);
             move_group.setStartStateToCurrentState();
             move_group.setJointValueTarget(goals_angles[data[seg_num].get_goal_id()]);
 
@@ -1131,7 +1133,7 @@ void robot_sequence::segment_thread_fn(int seg_num) {
                     while ((!plan_success) && (t<20)) {
                         // for (int j=0; j<rec.joint_positions.size();j++) std::cout<<rec.joint_positions[j]<<",";
                         std::cout<<std::endl;
-                        move_group.setPlanningTime(0.2);
+                        move_group.setPlanningTime(0.5);
                         state->setVariablePositions(rec->joint_positions);
                         move_group.setStartState(*state);
                         move_group.setJointValueTarget(plan.trajectory_.joint_trajectory.points.back().positions);
