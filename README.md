@@ -45,7 +45,7 @@ unzip -o libtorch_zip.zip
 sudo mv ~/Downloads/libtorch /urs/lib/libtorch
 ```
 
-Add some environment variables to bashrc:
+6. Add some environment variables to bashrc:
 ```
 echo "export PATH=/usr/lib/ccache:/usr/local/cuda/bin:$PATH" >> ~/.bashrc
 echo "export CUDACXX=/usr/local/cuda/bin/nvcc" >> ~/.bashrc
@@ -54,7 +54,7 @@ echo "export CUDA_AVAILABLE=true" >> ~/.bashrc
 echo "export OMP_NUM_THREADS=12" >> ~/.bashrc
 ```
 
-Create workspace for Flexible Collision Library
+7. Create workspace for Flexible Collision Library
 ```
 mkdir -p ~/fcl_ws/src && cd ~/fcl_ws/src
 git clone https://github.com/UF-SAMM-Lab/fcl.git
@@ -64,7 +64,7 @@ echo "source /home/$USER/fcl_ws/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
-Update planning_ws:
+8. Update planning_ws:
 ```
 cd ~/projects/planning_ws/src/ssm_safety
 git remote set-url https://github.com/UF-SAMM-Lab/ssm_safety.git
@@ -77,7 +77,7 @@ cd ~/projects/planning_ws
 catkin build -cs
 ```
 
-Update control_ws:
+9. Update control_ws:
 ```
 cd ~/projects/control_ws/src/motion_controllers/scaled_fjt_controller
 git remote set-url origin https://github.com/UF-SAMM-Lab/scaled_follow_joint_trajectory_controller.git
@@ -86,7 +86,7 @@ cd ~/projects/control_ws
 catkin build -cs
 ```
 
-Update sharework_ws:
+10. Update sharework_ws:
 ```
 cd ~/projects/sharework_ws/src/sharework_cell
 git remote set-url origin https://jaredtflowers@bitbucket.org/samm-lab/sharework_cell.git
@@ -97,7 +97,7 @@ catkin build -cs
 ```
 
 
-Create a new workspace with these steps:
+11. Create a new workspace with these steps:
 ```
 source ~/.bashrc
 mkdir -p ~/projects/test_ws_stap/src && cd ~/projects/test_ws_stap/src
