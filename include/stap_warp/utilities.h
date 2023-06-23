@@ -182,6 +182,7 @@ class data_recorder {
   ros::Subscriber sub_live_quats;
   ros::Subscriber sub_dist;
   ros::Subscriber solver_perf_sub;
+  ros::Subscriber human_dims_sub;
   ros::Publisher time_pub;
   ros::Time start_time;
   ros::Timer record_timer;
@@ -201,6 +202,7 @@ class data_recorder {
   std::mutex mtx2;
   std::mutex mtx3;
   std::mutex mtx5;
+  std::mutex dims_mtx;
   double tangential_speed;
   std::vector<Eigen::Quaternionf> human_quats;
   geometry_msgs::PoseArray pred_human_pose;
@@ -225,4 +227,6 @@ class data_recorder {
   void perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
   rosdyn::ChainPtr chain_;
   moveit::planning_interface::PlanningSceneInterface psi;
+  std::vector<float> human_dims;
+  void human_dims_callback(const std_msgs::Float32MultiArray::ConstPtr& msg);
 };

@@ -132,13 +132,15 @@ data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, 
 //   joint_states_sub = nh_.subscribe<sensor_msgs::JointState>("/joint_states",1,&data_recorder::spd_callback,this);
 //   joint_states_sub = nh_.subscribe<sensor_msgs::JointState>("/joint_states",1,&data_recorder::spd_callback,this);
   pose_sub = nh_.subscribe<geometry_msgs::PoseArray>("/poses",1,&data_recorder::pose_callback,this);
-
+  human_dims_sub = nh_.subscribe<std_msgs::Float32MultiArray>("/human_0/dimensions",1,&data_recorder::human_dims_callback,this);
   skeleton_sub = nh_.subscribe<std_msgs::Float32MultiArray>("/skeleton",1,&data_recorder::skeleton_callback,this);
   camera_keypoints = std::vector<float>(15*3,0.0);
     sub_live_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,&data_recorder::skel_quats_cb,this);
     sub_dist = nh.subscribe<std_msgs::Float32>("/min_robot_human_dist",1,&data_recorder::dist_callback,this);
     time_pub = nh.advertise<std_msgs::Float32>("/cycle_time",1);
     solver_perf_sub=nh.subscribe<std_msgs::Float64MultiArray>("/solver_performance",1,&data_recorder::perf_callback,this);
+
+  if (!nh.getParam("/human_link_lengths", human_dims)) ROS_ERROR("couldn't read human dimensions");
 
   record_timer = nh_.createTimer(ros::Duration(1.0/60.0), &data_recorder::record_thread, this);
   record_timer.stop();
@@ -154,6 +156,12 @@ void data_recorder::dist_callback(const std_msgs::Float32::ConstPtr& msg) {
   
     std::lock_guard<std::mutex> lck(mtx);
     min_distance = msg->data;
+}
+
+void data_recorder::human_dims_callback(const std_msgs::Float32MultiArray::ConstPtr& msg) {
+  
+    std::lock_guard<std::mutex> lck(dims_mtx);
+    human_dims = msg->data;
 }
 
 void data_recorder::spd_callback(const std_msgs::Int64::ConstPtr& msg) {
@@ -336,7 +344,8 @@ void data_recorder::record_thread(const ros::TimerEvent& event) {
         logFile<<"pred r shoulder x, y, z,";
         logFile<<"pred r elbow x, y, z,";
         logFile<<"pred r wrist x, y, z,";
-        logFile<<"plan time,min sep dist, tip speed\n";  
+        for (int j=0;j<human_dims.size();j++) logFile<<"dim:"<<j<<",";
+        logFile<<"plan time,min sep dist, tip speed\n";
     }
     t = (event.current_real-start_time).toSec();
     human_quats = skel->get_quats_at_time(t);
@@ -381,6 +390,8 @@ void data_recorder::record_thread(const ros::TimerEvent& event) {
     }
     std::lock_guard<std::mutex> lck(mtx);
     std::lock_guard<std::mutex> lck2(mtx2);
+    std::lock_guard<std::mutex> lck3(dims_mtx);
+    for (int j=0;j<human_dims.size();j++) logFile<<human_dims[j]<<",";
     logFile<<plan_time<<","<<min_distance<<","<<tangential_speed<<"\n";   
     log_lines++; 
 }
