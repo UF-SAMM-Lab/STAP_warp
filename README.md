@@ -67,11 +67,11 @@ source ~/.bashrc
 
 8. Update planning_ws:
 ```
-cd ~/projects/planning_ws/src/ssm_safety
-git remote set-url https://github.com/UF-SAMM-Lab/ssm_safety.git
+cd ~/projects/planning_ws/src/safety/ssm_safety
+git remote set-url origin https://github.com/UF-SAMM-Lab/ssm_safety.git
 git pull
 cd ~/projects/planning_ws/src/motion/human_aware_motion_planners
-git remote set-url https://github.com/UF-SAMM-Lab/cari_motion_planning.git
+git remote set-url origin https://github.com/UF-SAMM-Lab/cari_motion_planning.git
 git checkout jf_branch
 git pull
 cd ~/projects/planning_ws
