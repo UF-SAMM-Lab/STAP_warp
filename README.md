@@ -58,6 +58,7 @@ echo "export OMP_NUM_THREADS=12" >> ~/.bashrc
 ```
 mkdir -p ~/jf_fcl_ws/src && cd ~/jf_fcl_ws/src
 git clone https://github.com/UF-SAMM-Lab/fcl.git
+cd ~/jf_fcl_ws
 catkin config --install
 catkin build -cs
 echo "source /home/$USER/jf_fcl_ws/install/setup.bash" >> ~/.bashrc
