@@ -35,14 +35,14 @@ pip3 install --pre torch torchvision torchaudio --index-url https://download.pyt
 cd ~/Downloads
 curl https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-shared-with-deps-2.0.1%2Bcu118.zip > libtorch_zip.zip
 unzip -o libtorch_zip.zip
-sudo mv ~/Downloads/libtorch /urs/lib/libtorch
+sudo mv ~/Downloads/libtorch /usr/lib/libtorch
 ```
 or 12.1 LibTorch:
 ```
 cd ~/Downloads
 curl https://download.pytorch.org/libtorch/nightly/cu121/libtorch-cxx11-abi-shared-with-deps-latest.zip > libtorch_zip.zip
 unzip -o libtorch_zip.zip
-sudo mv ~/Downloads/libtorch /urs/lib/libtorch
+sudo mv ~/Downloads/libtorch /usr/lib/libtorch
 ```
 
 6. Add some environment variables to bashrc:
@@ -56,11 +56,11 @@ echo "export OMP_NUM_THREADS=12" >> ~/.bashrc
 
 7. Create workspace for Flexible Collision Library
 ```
-mkdir -p ~/fcl_ws/src && cd ~/fcl_ws/src
+mkdir -p ~/jf_fcl_ws/src && cd ~/jf_fcl_ws/src
 git clone https://github.com/UF-SAMM-Lab/fcl.git
 catkin config --install
 catkin build -cs
-echo "source /home/$USER/fcl_ws/install/setup.bash" >> ~/.bashrc
+echo "source /home/$USER/jf_fcl_ws/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 
