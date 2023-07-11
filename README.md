@@ -1,4 +1,5 @@
 # This is the code for testing the STAP-PPF method.
+The stap_warp.cpp has a warp function that determines the robot's current pose along the nominal plan and then uses potential fields to make the predicted human push the nominal robot path away. Then the warp function picks out a subset of waypoints from the warped path to be the new trajectory.  It then sends the new, warped trajectory to the scaled_fjt_controller, which is also modified to accept continuous trajectory updates.
 
 ## To make the code operational on your machine, do these steps:
 1. check the cuda version ```nvcc --version```
@@ -64,7 +65,7 @@ catkin build -cs
 echo "source /home/$USER/jf_fcl_ws/install/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
-
+Steps 8 and 9 assume you have installed software following the scheme of a planning_ws workspace and control_ws workspace.
 8. Update planning_ws:
 ```
 cd ~/projects/planning_ws/src/safety/ssm_safety
@@ -86,7 +87,7 @@ git pull
 cd ~/projects/control_ws
 catkin build -cs
 ```
-
+Step 10 is for use the the Sharework cell in the STIIMA-CARI-UNIBS lab:
 10. Update sharework_ws:
 ```
 cd ~/projects/sharework_ws/src/sharework_cell
@@ -96,7 +97,6 @@ git checkout jf_devel
 cd ~/projects/sharework_ws
 catkin build -cs
 ```
-
 
 11. Create a new workspace with these steps:
 ```
