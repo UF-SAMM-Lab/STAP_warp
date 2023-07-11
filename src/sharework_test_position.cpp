@@ -74,9 +74,9 @@ int main(int argc, char** argv) {
 
    
   int test_num = 1; 
-  if (!nh.getParam("/sequence_test/test_num",test_num))
+  if (!nh.getParam("/sw_test_pos/test_num",test_num))
   {
-    ROS_WARN("/sequence_test/test_num is not set");
+    ROS_WARN("/sw_test_pos/test_num is not set");
   }  
 
   int pos_num = 0;

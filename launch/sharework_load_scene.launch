@@ -1,0 +1,18 @@
+<launch>
+    <arg name="test_num" default="1" />
+    <rosparam file="$(find stap_warp)/config/sharework/tests.yaml" />
+    <param  name="plan_group" value="manipulator"/>
+    <param  name="ctrl_ns" value="manipulator"/>
+    <arg name="cell" default="sharework"/>
+    <arg name="path_set_num" default="0"/>
+    <param  name="sequence_test/cell" value="$(arg cell)"/>
+
+    <rosparam file="$(find stap_warp)/config/sharework/sequence.yaml" command="load"/>
+
+    <rosparam file="$(find sharework_cembre_safety)/config/thor_safety.yaml" command="load"/>
+    <node name="load_scene" pkg="stap_warp" type="load_scene" respawn="false" output="screen" required="true" >
+        <param name="test_num" value="$(arg test_num)"/>
+    </node> 
+    <!-- launch-prefix="gdb -ex run  -args"> -->
+    <!-- "gdb -.-ex run -.-args"  -->
+</launch>

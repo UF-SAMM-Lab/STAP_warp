@@ -37,9 +37,9 @@ int main(int argc, char** argv) {
 
 
   int test_num = 1; 
-  if (!nh.getParam("/sequence_test/test_num",test_num))
+  if (!nh.getParam("/sw_go_pos/test_num",test_num))
   {
-    ROS_WARN("/sequence_test/test_num is not set");
+    ROS_WARN("/sw_go_pos/test_num is not set");
   }  
 
   std::vector<double> desired_xyzq;
@@ -111,6 +111,12 @@ int main(int argc, char** argv) {
   } else {
     ROS_ERROR("plan failed");
   }
+
+  robot_state::RobotStatePtr current_state = move_group.getCurrentState();
+  const Eigen::Affine3d& end_state = current_state->getGlobalLinkTransform("open_tip");
+  Eigen::Quaterniond q(end_state.rotation());
+  std::cout<<"pos:"<<end_state.translation()[0]<<","<<end_state.translation()[1]<<","<<end_state.translation()[2];
+  std::cout<<"quat:"<<q.w()<<","<<q.x()<<","<<q.y()<<","<<q.z();
   ros::spinOnce();
 
   return 0;

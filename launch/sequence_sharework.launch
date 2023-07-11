@@ -1,11 +1,14 @@
 <launch>
     <!-- <arg name="test" default="1" /> -->
     <arg name="planning_time" default="5" />
+    <arg name="use_warp" default="false" />
     <arg name="debug" default="false" />
     <arg name="avoid_time_offset" default="0.0" />
     <arg name="num_tests" default="1" />
     <arg name="stap_offset" default="0" />
     <arg name="test_num" default="1" />
+    <arg name="plan_method" default="1" />
+    <arg name="show_pred_sequence" default="false" />
     <rosparam file="$(find stap_warp)/config/sharework/tests.yaml" />
     <rosparam file="$(find stap_warp)/config/human_config.yaml" />
     <rosparam file="$(find stap_warp)/config/avoid_config.yaml" />
@@ -19,17 +22,22 @@
     <param  name="stap_warp/tool_frame" value="open_tip"/>
     <param  name="sequence_test/planning_time" value="5.0"/>
     <param  name="sequence_test/workcell_transform" value="0.0,-0.0,1.0,0.707,0,0,-0.707"/>
+    <param  name="sequence_test/show_pred_sequence" value="$(arg show_pred_sequence)"/>
     <arg unless="$(arg debug)" name="launch_prefix" value="" />
     <arg     if="$(arg debug)" name="launch_prefix"
            value="gdb --ex run --args" /> 
     <arg name="simulated" default="false" />
     <arg name="cell" default="sharework"/>
+    <arg name="path_set_num" default="0"/>
     <param  name="sequence_test/cell" value="$(arg cell)"/>
+    <param  name="sequence_test/plan_method" value="$(arg plan_method)"/>
+    <param  name="sequence_test/gripper_done_topic" value="/gripper_done"/>
+    <param  name="sequence_test/path_set_num" value="$(arg path_set_num)"/>
 
     <rosparam file="$(find stap_warp)/config/sharework/sequence.yaml" command="load"/>
 
     <rosparam file="$(find sharework_cembre_safety)/config/thor_safety.yaml" command="load"/>
-    <include file="$(find sharework_cembre_safety)/launch/safety.launch"/>
+    <!-- <include file="$(find sharework_cembre_safety)/launch/safety_mediapipe.launch"/>  -->
     <include file="$(find robot_human_distance_checker)/launch/dist_check_ur.launch"/>
     <include file="$(find human_prediction)/launch/predict_service.launch"/>
     <!-- <include file="$(find velocity_scaling_iso15066)/launch/publish_unscaled_joint_target.launch"/> -->
@@ -37,6 +45,7 @@
     <node name="sequence_test" pkg="stap_warp" type="sequence_test" respawn="false" output="screen" required="true" launch-prefix="$(arg launch_prefix)">
         <param name="simulated" value="$(arg simulated)"/>
         <param name="test_num" value="$(arg test_num)"/>
+        <param name="use_warp" value="$(arg use_warp)"/>
     </node> 
     <!-- launch-prefix="gdb -ex run  -args"> -->
     <!-- "gdb -.-ex run -.-args"  -->

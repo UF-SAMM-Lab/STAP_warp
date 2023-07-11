@@ -164,6 +164,14 @@ target_link_libraries(sw_grip_int
 add_dependencies(sw_grip_int ${catkin_EXPORTED_TARGETS})
 install(TARGETS sw_grip_int DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
+add_executable(load_scene src/load_sequence_scene.cpp)
+target_link_libraries(load_scene
+  ${catkin_LIBRARIES}
+  ${PROJECT_NAME}
+)
+add_dependencies(load_scene ${catkin_EXPORTED_TARGETS})
+install(TARGETS load_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 #############
 ## Install ##
 #############

@@ -39,19 +39,18 @@ int main(int argc, char** argv) {
   ros::ServiceClient gripper_client = nh.serviceClient<manipulation_msgs::JobExecution>("/robotiq_gripper");
   gripper_client.waitForExistence();
 
-   
-  bool open_grip = false;
-  if (!nh.getParam("/sw_test_grip/open", open_grip))
+  std::string open_string = "pos_85_force_0_vel_0";
+  if (!nh.getParam("/sw_test_grip/open_string", open_string))
   {
-    ROS_ERROR("/sw_test_grip/open is not defined");
+    ROS_ERROR("/sw_test_grip/open_string is not defined");
   }
-                  
+  ROS_INFO_STREAM(open_string);
   manipulation_msgs::JobExecution srv;
 
-  srv.request.property_id= open_grip ? "open":"close";
+  srv.request.property_id= open_string;
   if (gripper_client.call(srv)) {
     if (srv.response.results>=0) {
-      ROS_INFO_STREAM("success, gripper:"<<open_grip ? "open":"close");
+      ROS_INFO_STREAM("success, gripper:"<<open_string);
     } else {
       ROS_WARN("unable to grasp");
     }

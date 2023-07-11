@@ -110,7 +110,6 @@ int main(int argc, char** argv) {
     ros::Publisher nom_plan_pub = nh.advertise<visualization_msgs::Marker>("/nominal_plan",1);
     ros::Publisher pub_human_status = nh.advertise<visualization_msgs::Marker>("/human_status",1);
     ros::Publisher pub_pause_tracking = nh.advertise<std_msgs::Bool>("/pause_tracking",1);
-    ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
     ros::Subscriber sub_human_done = nh.subscribe<std_msgs::Float32MultiArray>("/human_task_status",1,human_done_cb);
     std::shared_ptr<ros::Publisher> pub_txt = std::make_shared<ros::Publisher>(nh.advertise<jsk_rviz_plugins::OverlayText>("stap_description", 0,false));
     std::string plan_group = "manipulator";
@@ -132,10 +131,10 @@ int main(int argc, char** argv) {
     actionlib_msgs::GoalID goal_id_msg;
     ros::Subscriber sub_goal = nh.subscribe<control_msgs::FollowJointTrajectoryActionGoal>(ctrl_ns+"/follow_joint_trajectory/goal",1,goal_callback);
     //do a test with no obsctacles:
-    std::vector<double> start_joint = {55,-69,87,-108,90,35}; 
-    for (int i = 0;i<6;i++) {
-      start_joint[i] *= 3.14/180;
-    }
+    std::vector<double> start_joint = {1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0}; 
+    // for (int i = 0;i<6;i++) {
+    //   start_joint[i] *= 3.14/180;
+    // }
     moveit::planning_interface::MoveGroupInterface move_group(plan_group);
     // actionlib::SimpleActionClient<moveit_msgs::MoveGroupAction> mg_action_client = move_group.getMoveGroupClient();
     const robot_state::JointModelGroup* joint_model_group_ = move_group.getCurrentState()->getJointModelGroup(plan_group);
@@ -157,7 +156,7 @@ int main(int argc, char** argv) {
     }
 
     std::string resp = "y";
-    clearObstacles();
+    // clearObstacles();
 
 
     start_joint = {55,-69,87,-108,90,35}; 
@@ -185,20 +184,25 @@ int main(int argc, char** argv) {
       ROS_ERROR_STREAM("log_file_name is not defined for test "<<test_num);
       return 0;
     }
+    if (!nh.getParam("/tests/human_start_pose",human_quat_pose))
+    {
+      ROS_ERROR_STREAM("human_start_pose is not defined");
+      return 0;
+    }
 
     move_group.setPlanningPipelineId(planning_pipeline);
     move_group.setPlannerId(planner_id);
 
     nh.getParam("/tests/"+std::to_string(test_num)+"/robot_start", start_joint);
-    for (int i = 0;i<6;i++) {
-      start_joint[i] *= 3.14/180;
-    }
+    // for (int i = 0;i<6;i++) {
+    //   start_joint[i] *= 3.14/180;
+    // }
     bool use_warp = true;
     nh.getParam("/use_warp",use_warp);
     nh.getParam("/tests/"+std::to_string(test_num)+"/robot_start", start_joint);
-    for (int i = 0;i<6;i++) {
-      start_joint[i] *= 3.14/180;
-    }
+    // for (int i = 0;i<6;i++) {
+    //   start_joint[i] *= 3.14/180;
+    // }
     robot_state::RobotStatePtr state;
     state = move_group.getCurrentState();
     state->setVariablePositions(start_joint);
@@ -217,7 +221,7 @@ int main(int argc, char** argv) {
     nh.getParam("/tests/"+std::to_string(test_num)+"/planning_time", plan_time);
     Eigen::VectorXd goal_vec(goal_joint.size());
     for (int i = 0;i<6;i++) {
-      goal_joint[i] *= 3.14/180;
+      // goal_joint[i] *= 3.14/180;
       goal_vec[i] = goal_joint[i];
     }
     std::cout<<"human_task_num:"<<human_task_num<<std::endl;
@@ -227,14 +231,21 @@ int main(int argc, char** argv) {
     bool move_success;
     std::vector<double> workcell_transform(7,0.0);
     workcell_transform[6] = 1.0;
-    Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
+    Eigen::Isometry3f transform_to_world_pre = Eigen::Isometry3f::Identity();
     if (nh.getParam("/tests/"+std::to_string(test_num)+"/workcell_transform", workcell_transform)) {
+      transform_to_world_pre.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
+      transform_to_world_pre.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
+    }
+    ROS_INFO_STREAM(transform_to_world_pre.matrix());
+
+    Eigen::Isometry3f transform_to_world = Eigen::Isometry3f::Identity();
+    if (nh.getParam("/tests/workcell_transform", workcell_transform)) {
       transform_to_world.linear() = Eigen::Matrix3f(Eigen::Quaternionf(workcell_transform[3],workcell_transform[4],workcell_transform[5],workcell_transform[6]));
       transform_to_world.translation() = Eigen::Vector3f(workcell_transform[0],workcell_transform[1],workcell_transform[2]);
     }
     ROS_INFO_STREAM(transform_to_world.matrix());
-    
-    human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
+
+    // human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
 
     std::vector<float> human_link_lengths;// = {0.569,0.194,0.328,0.285,0.357,0.285,0.45}; 
     std::vector<float> human_link_radii;// = {0.12,0.05,0.1,0.04,0.03,0.04,0.03}; 
@@ -259,7 +270,7 @@ int main(int argc, char** argv) {
     // test_skeleton->link_lengths_ = {0.5,0.2,0.35,0.35,0.35,0.35,0.35};
     // test_skeleton->link_radii_ = {0.12,0.05,0.1,0.04,0.03,0.04,0.03};
     ROS_INFO_STREAM("reading file ");
-    avoid_pts = test_skeleton->read_human_task(human_task_num,transform_to_world);
+    avoid_pts = test_skeleton->read_human_task(human_task_num,transform_to_world_pre);
     ROS_INFO_STREAM("avoid pts size "<<avoid_pts.size());
     double avoid_offset = 0.0;
     nh.getParam("/test_sharework_cell/avoid_time_offset",avoid_offset);
@@ -396,7 +407,9 @@ int main(int argc, char** argv) {
     human_data->predicted_motion();
     human_data->generate_full_sequence(0,0,0.0);
     ROS_INFO_STREAM("human sequence:"<<human_data->full_joint_seq.size()<<" steps");
-    human_data->show_predictions(human_link_lengths,human_link_radii);
+    // human_data->show_predictions(human_link_lengths,human_link_radii);
+
+    ros::Subscriber sub_quats = nh.subscribe<std_msgs::Float32MultiArray>("/skeleton_quats",1,skel_quats_cb);
 
     for (int test_num=0;test_num<num_tests;test_num++) {
       std_msgs::Bool pause_track_msg;
@@ -518,10 +531,11 @@ int main(int argc, char** argv) {
         if (i==1) {
           ROS_WARN("Press enter when the human is in place.  When you press enter, the human should repeat the recorded motion.");
 
-          std::cin.ignore();
+          // std::cin.ignore();
 
           start_tm = ros::Time::now();
           std::cout<<"Starting in:\n";
+          pub_txt->publish(stap_test::gen_overlay_text("starting in 3 seconds"));
           start_human.start();
           ros::Duration(3.0).sleep();
           std::cout<<"Go!\n";
@@ -589,7 +603,7 @@ int main(int argc, char** argv) {
               human_occupany.set_occupancy(pts);
             }
             if ((planner_id=="dirrt_paper")||(planner_id=="multigoal_ssm_test")) {
-              if (((((ros::Time::now()-prev_plan_time).toSec()>1.0) && (rec.spd_scale<50)) && (rec.spd_scale-prev_spd_scale<=0))||replan_needed) {
+              if (((((ros::Time::now()-prev_plan_time).toSec()>1.0) && (rec.spd_scale<40)) && (rec.spd_scale-prev_spd_scale<=0))||replan_needed) {
                 move_group.stop();
                 int t=0;
                 while (rec.joint_vel_vec.cwiseAbs().sum()>0.001) {
@@ -609,12 +623,12 @@ int main(int argc, char** argv) {
 
                 plan_success = false;
                 t = 0;
-                while ((!plan_success) && (t<20)) {
+                while ((!plan_success) && (t<100)) {
                   for (int j=0; j<rec.joint_positions.size();j++) std::cout<<rec.joint_positions[j]<<",";
                   std::cout<<std::endl;
                   move_group.setPlanningPipelineId(planning_pipeline);
                   move_group.setPlannerId(planner_id);
-                  move_group.setPlanningTime(0.5);
+                  move_group.setPlanningTime(1.0);
                   state->setVariablePositions(rec.joint_positions);
                   move_group.setStartState(*state);
                   move_group.setJointValueTarget(goal_joint);

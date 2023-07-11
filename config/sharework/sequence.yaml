@@ -1,9 +1,37 @@
+home_joint: [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
 test_sequence:
   "1":
-    add_collision_box: true
-    collision_box_origin_xyz_wxyz_dims: [0.399758,0.4,1.075,-0,0.707214,-0.707,0,0.4,0.3,0.15]
+    collision_boxes:
+      length: 9
+      "0":
+        origin_xyz_wxyz_dims: [0.15,0.9,1.5,1,0,0,0,0.2,0.5,0.5]
+        name: "monitor"
+      "1":
+        origin_xyz_wxyz_dims: [0.15,0.0,1.05,1,0,0,0,0.05,2.0,0.2]
+        name: "ledge"
+      "2":
+        origin_xyz_wxyz_dims: [-0.32,-0.35,0.9,1,0,0,0,0.4,0.65,0.3]
+        name: "left_box"
+      "3":
+        origin_xyz_wxyz_dims: [-0.35,0.58,0.9,1,0,0,0,0.4,0.65,0.3]
+        name: "right_box"
+      "4":
+        origin_xyz_wxyz_dims: [-0.1,0.05,0.9,1,0,0,0,0.4,0.6,0.3]
+        name: "table_box"
+      "5":
+        origin_xyz_wxyz_dims: [-0.2,-0.95,1.35,1,0,0,0,0.5,0.1,0.3]
+        name: "thing_on_pillar"
+      "6":
+        origin_xyz_wxyz_dims: [0.30,-0.48,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet"
+      "7":
+        origin_xyz_wxyz_dims: [0.3,0.4,1.05,1,0,0,0,0.3,0.3,0.05]
+        name: "safety_box"
+      "8":
+        origin_xyz_wxyz_dims: [0.15,0.0,1.0,1,0,0,0,0.1,0.3,0.1]
+        name: "ledge"
     workcell_transform: [0.0,0.0,1.0,0.707,0,0,-0.707]
-    planning_time: 7.0
+    planning_time: 10.0
     robot_positions:
       length: 13
       "0": [0.4,0.0,0.11,0.000273793,-0.382499,0.923956,-0.000113345]
@@ -22,41 +50,63 @@ test_sequence:
     robot_positions_at:
       length: 13
       "0": [0.000120783,-0.399879,1.11,0.000113495,0.382728,0.923861,-0.000273731]
-      "1": [-0.05,0.452894,1.11,0.000250186,0.00044629,1,0.000158797]
-      "2": [-0.05,0.452894,0.925,0.000250186,0.00044629,1,0.000158797]
-      "3": [0.32,-0.034883,1.11,0.0,0.70710678118,-0.70710678118,0.0]
-      "4": [0.32,-0.034883,1.05,0.0,0.70710678118,-0.70710678118,0.0]
-      "5": [0,0,0,0,0,0]
+      "1": [-0.05,0.46,1.16,0.000250186,0.00044629,1,0.000158797]
+      "2": [-0.05,0.46,0.93,0.000250186,0.00044629,1,0.000158797]
+      "3": [0.32,-0.034883,1.13,0.0,0.70710678118,-0.70710678118,0.0]
+      "4": [0.32,-0.034883,1.06,0.0,0.70710678118,-0.70710678118,0.0]
+      "5": [0.2,-0.034883,1.13,0.0,0.70710678118,-0.70710678118,0.0]
       "6": [0,0,0,0,0,0]
-      "7": [-0.05,0.531,1.11,0.000250186,0.00044629,1,0.000158797]
-      "8": [-0.05,0.531,0.925,0.000250186,0.00044629,1,0.000158797]
+      "7": [-0.05,0.538,1.11,0.000250186,0.00044629,1,0.000158797]
+      "8": [-0.05,0.538,0.93,0.000250186,0.00044629,1,0.000158797]
       "9": [-0.0098913,-0.349897,1.16,0.000250186,0.00044629,1,0.000158797]
-      "10": [-0.0098913,-0.349897,1.06,0.000250186,0.00044629,1,0.000158797]
-      "11": [0.32,-0.099849,1.16,0.000250186,0.00044629,1,0.000158797]
-      "12": [0.32,-0.099849,1.05,0.000250186,0.00044629,1,0.000158797]
+      "10": [-0.0098913,-0.349897,1.01,0.000250186,0.00044629,1,0.000158797]
+      "11": [0.28,-0.099849,1.16,0.000250186,0.00044629,1,0.000158797]
+      "12": [0.28,-0.099849,1.042,0.000250186,0.00044629,1,0.000158797]
+      "13": [-0.35,-0.55,1.1,0.000250186,0.00044629,1,0.000158797]
     robot_poses:
       length: 13
       "0": [2.2995,-1.88062,2.0405,-1.73022,1.56967,-1.51353]
-      "1": [0.0775783,-2.04998,2.13965,-1.66006,1.56922,-0.0761876]
-      "2": [0.0770145,-2.0277,1.80206,-1.34477,1.56969,-0.0761556]
-      "3": [1.43319,-1.77553,1.96457,-1.75981,1.5702,-3.00352]
-      "4": [1.43304,-1.78948,1.86925,-1.65054,1.57026,-3.00356]
-      "5": [0.786,0.867,0.886,0,1.387,-0.776]
+      "1": [0.0766881,-2.02249,2.214,-1.76189,1.56963,-0.0751433]
+      "2": [0.0753902,-2.01835,1.80617,-1.35829,1.56921,-0.0750785]
+      "3": [1.43324,-1.76819,1.99463,-1.79721,1.57018,-3.00351]
+      "4": [1.43306,-1.78796,1.88567,-1.66847,1.57025,-3.00355]
+      "5": [1.39548,-1.99749,2.14732,-1.72059,1.57002,-2.96572]
       "6": [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
-      "7": [0.0649718,-1.90778,2.05828,-1.72077,1.56924,-0.0635828]
-      "8": [0.0646554,-1.90379,1.73034,-1.39737,1.57,-0.0637762]
+      "7": [0.0640107,-1.89529,2.05021,-1.72529,1.5692,-0.0626842]
+      "8": [0.0636721,-1.89416,1.7329,-1.40929,1.56987,-0.062826]
       "9": [2.23252,-1.9587,2.17867,-1.79035,1.57069,-2.23093]
-      "10": [2.23212,-1.98242,2.01564,-1.60392,1.57061,-2.23089]
-      "11": [1.54829,-1.72915,2.01738,-1.85807,1.57035,-1.54688]
-      "12": [1.54791,-1.76457,1.84974,-1.65556,1.57022,-1.54674]
+      "10": [2.23198,-1.98121,1.92747,-1.51755,1.57074,-2.23091]
+      "11": [1.54671,-1.79991,2.07308,-1.84354,1.57044,-1.54516]
+      "12": [1.54607,-1.83403,1.88836,-1.62516,1.56991,-1.54486]
     robot_sequence:
-      length: 27
+      length: 28
+      planning_methods:
+        "1":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: true
+        "2":
+          pipeline: irrt_avoid
+          planner: irrta
+          continuously_replan: false
+        "3":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: true
+        "4":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: false
+        "5":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: false
       nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt, dirrt
       nonrestrictive_planner: irrta #irrta, dirrt_paper, multigoal_ssm_test
       "0":
         description: "open gripper"
         type: 2
-        pct: 50
+        pct: 47
         after_human_task: -1
         start_delay: 0.0
       "1":
@@ -119,13 +169,13 @@ test_sequence:
       "8":
         description: "open gripper"
         type: 2
-        pct: 30
+        pct: 47
         after_human_task: -1
         start_delay: 0.0
       "9":
         description: "raise to perch over piston"
         type: 0
-        goal: 3
+        goal: 5
         after_human_task: -1
         start_delay: 0.0
         pipeline: ompl
@@ -189,13 +239,13 @@ test_sequence:
       "16":
         description: "open gripper"
         type: 2
-        pct: 100
+        pct: 47
         after_human_task: -1
         start_delay: 0.0
       "17":
         description: "raise to perch over piston"
         type: 0
-        goal: 3
+        goal: 5
         after_human_task: -1
         start_delay: 0.0
         pipeline: ompl
@@ -210,6 +260,12 @@ test_sequence:
         planner: irrta
         use_nonrestrictive_planner: true
       "19":
+        description: "open gripper"
+        type: 2
+        pct: 71
+        after_human_task: -1
+        start_delay: 0.0
+      "20":
         description: "pick crankshaft"
         type: 0
         goal: 10
@@ -217,13 +273,13 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "20":
+      "21":
         description: "close gripper"
         type: 1
         pct: 0
         after_human_task: -1
         start_delay: 0.0
-      "21":
+      "22":
         description: "raise crankshaft"
         type: 0
         goal: 9
@@ -231,7 +287,7 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "22":
+      "23":
         description: "go to place crankshaft"
         type: 0
         goal: 11
@@ -240,7 +296,7 @@ test_sequence:
         pipeline: irrt_avoid
         planner: irrta
         use_nonrestrictive_planner: true
-      "23":
+      "24":
         description: "lower crankshaft"
         type: 0
         goal: 12
@@ -248,13 +304,13 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "24":
+      "25":
         description: "open gripper"
         type: 2
-        pct: 100
+        pct: 71
         after_human_task: -1
         start_delay: 0.0
-      "25":
+      "26":
         description: "back away"
         type: 0
         goal: 11
@@ -262,7 +318,7 @@ test_sequence:
         start_delay: 0.0
         pipeline: ompl
         planner: BiTRRT
-      "26":
+      "27":
         description: "back away from workspace"
         type: 0
         goal: 6
@@ -276,6 +332,7 @@ test_sequence:
       start_pose: []  
       simulated_switch_times: [0.0]  
       show_human_rate: 50
+      start_pose: [0.908226,0.173966,0.965214,0.705906,-0.035458,0.0493738,-0.705692,0.677521,-0.0379904,-0.28419,-0.677316,0.503807,0.609008,0.34874,-0.503655,0.201172,-0.571943,-0.769392,-0.201111,0.501976,0.703839,0.0283315,-0.501825,0.201097,0.370572,0.884207,-0.201036,0.505554,-0.261435,-0.648565,-0.505401]
       "0":
         description: "right arm start pose"
         after_robot_task: 0
@@ -297,9 +354,9 @@ test_sequence:
         after_robot_task: 1
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.1,0.31,1.05] #[-0.31,0.25,1.05]
+        reach_target: [0.1,0.15,1.00] #[-0.31,0.25,1.05]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "3":
         description: "bring connecting rod near to assembly area"
         after_robot_task: 1
@@ -307,7 +364,7 @@ test_sequence:
         start_delay: 2.0
         reach_target: [0.65,0.3,1.05] #[-0.3,0.65,1.05]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "4":
         description: "ensure the left arm is out of the way"
         after_robot_task: 1
@@ -323,7 +380,7 @@ test_sequence:
         start_delay: 0.0
         reach_target: [0.32,0,1.1] #[-0.0,0.4,1.1]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "6":
         description: "rest right arm"
         after_robot_task: 10
@@ -337,28 +394,28 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.32,-0.3,1.00] #[0.2,0.5,1.00]
+        reach_target: [0.5,-0.2,1.00] #[0.2,0.5,1.00]
         end_delay: 2.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "8":
         description: "insert pin through piston and rod"
         after_robot_task: 10
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.32,0.0,1.05] #[-0.0,0.4,1.05]
+        reach_target: [0.32,-0.05,1.05] #[-0.0,0.4,1.05]
         end_delay: 0.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "9":
         description: "put the piston rod assembly on the table"
         after_robot_task: 10
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.32,0.3,1.05] #[-0.2,0.4,1.05]
+        reach_target: [0.5,0.0,1.00] #[-0.2,0.4,1.05]
         end_delay: 0.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "10":
         description: "ensure the left arm is out of the way"
         after_robot_task: 10
@@ -379,9 +436,9 @@ test_sequence:
         after_robot_task: 10
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.1,0.39,1.05] #[-0.39,0.25,1.05]
+        reach_target: [0.15,0.15,1.0] #[-0.39,0.25,1.05]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "12":
         description: "bring connecting rod 2 near to assembly area"
         after_robot_task: 10
@@ -389,7 +446,7 @@ test_sequence:
         start_delay: 2.0
         reach_target: [0.65,0.3,1.2] #[-0.3,0.65,1.2]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "13":
         description: "ensure the left arm is out of the way"
         after_robot_task: 10
@@ -405,7 +462,7 @@ test_sequence:
         start_delay: 0.0
         reach_target: [0.32,0.0,1.1] #[-0.0,0.4,1.1]
         arm: "right"
-        check_pos: true
+        check_pos: false
       "15":
         description: "rest right arm"
         after_robot_task: 18
@@ -419,28 +476,28 @@ test_sequence:
         after_robot_task: 18
         after_human_task: -1
         start_delay: 0.0
-        reach_target: [0.32,-0.35,1.00] #[0.2,0.5,1.00]
+        reach_target: [0.5,-0.2,1.00] #[0.2,0.5,1.00]
         end_delay: 0.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "17":
         description: "insert pin 2 through piston and rod"
         after_robot_task: 18
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.32,0.0,1.05] #[-0.0,0.4,1.05]
+        reach_target: [0.32,-0.05,1.05] #[-0.0,0.4,1.05]
         end_delay: 0.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "18":
         description: "put the piston rod assembly 2 on the table"
         after_robot_task: 18
         after_human_task: -1
         start_delay: 2.0
-        reach_target: [0.32,0.35,1.05] #[-0.2,0.4,1.05]
+        reach_target: [0.5,0.0.1,1.0] #[-0.2,0.4,1.05]
         end_delay: 0.0
         arm: "left"
-        check_pos: true
+        check_pos: false
       "19":
         description: "ensure the left arm is out of the way"
         after_robot_task: 18
@@ -458,30 +515,160 @@ test_sequence:
         arm: "right"
         check_pos: false
   "2":
-    add_collision_box: false
+    collision_boxes:
+      length: 14
+      "0":
+        origin_xyz_wxyz_dims: [0.15,0.9,1.5,1,0,0,0,0.2,0.5,0.5]
+        name: "monitor"
+      "1":
+        origin_xyz_wxyz_dims: [0.15,0.0,1.05,1,0,0,0,0.05,0.3,0.2]
+        name: "ledge"
+      "2":
+        origin_xyz_wxyz_dims: [-0.12,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_0"
+      "3":
+        origin_xyz_wxyz_dims: [-0.52,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_1"
+      "4":
+        origin_xyz_wxyz_dims: [-0.32,-0.675,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_2"
+      "5":
+        origin_xyz_wxyz_dims: [-0.32,-0.025,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_3"
+      "6":
+        origin_xyz_wxyz_dims: [-0.15,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_0"
+      "7":
+        origin_xyz_wxyz_dims: [-0.55,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_1"
+      "8":
+        origin_xyz_wxyz_dims: [-0.35,0.905,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_2"
+      "9":
+        origin_xyz_wxyz_dims: [-0.35,0.255,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_3"
+      "10":
+        origin_xyz_wxyz_dims: [0.30,-0.48,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet"
+      "11":
+        origin_xyz_wxyz_dims: [0.30,-0.05,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet2"
+      "12":
+        origin_xyz_wxyz_dims: [0.05,0.2,0.95,1,0,0,0,0.3,0.3,0.3]
+        name: "t1_parts"
+      "13":
+        origin_xyz_wxyz_dims: [-0.2,-0.95,1.35,1,0,0,0,0.5,0.1,0.3]
+        name: "thing_on_pillar"
     workcell_transform: [0.0,0.0,1.0,0.707,0,0,-0.707]
-    planning_time: 7.0
+    planning_time: 10.0
     robot_positions:
       length: 1
       "0": [0.4,0.0,0.11,0.000273793,-0.382499,0.923956,-0.000113345]
     robot_positions_at:
       length: 1
-      "0": [0.000120783,-0.399879,1.11,0.000113495,0.382728,0.923861,-0.000273731]
+      "0": [0.32,0.52,1.06,-0.000199288,1,-0.000473188,0.000552502]
     robot_poses:
-      length: 1
-      "0": [2.2995,-1.88062,2.0405,-1.73022,1.56967,-1.51353]
+      length: 5
+      "0": [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
+      "1": [3.04649,-1.64343,2.01712,-1.94435,1.57137,0.0967772 ]
+      "2": [3.04748,-1.6912,1.70107,-1.58068,1.57139,0.0950536 ]
+      "3": [0.658463,-1.46868,1.83925,-1.94064,1.57008,2.48468]
+      "4": [0.657863,-1.52538,1.64708,-1.69166,1.56934,2.48495]
     robot_sequence:
-      length: 2
+      length: 10
+      planning_methods:
+        "1":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: true
+        "2":
+          pipeline: irrt_avoid
+          planner: irrta
+          continuously_replan: false
+        "3":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: true
+        "4":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: false
+        "5":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: false
       nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt, dirrt
       nonrestrictive_planner: irrta #irrta, dirrt_paper, multigoal_ssm_test
       "0":
         description: "open gripper"
         type: 2
-        pct: 50
+        pct: 40
         after_human_task: -1
         start_delay: 0.0
       "1":
-        description: "go to start position"
+        description: "go to perch position"
+        type: 0
+        goal: 1
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+      "2":
+        description: "pick position"
+        type: 0
+        goal: 2
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "3":
+        description: "close gripper"
+        type: 1
+        pct: 0
+        after_human_task: -1
+        start_delay: 0.0
+      "4":
+        description: "up"
+        type: 0
+        goal: 1
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "5":
+        description: "go to place position"
+        type: 0
+        goal: 3
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+      "6":
+        description: "place"
+        type: 0
+        goal: 4
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "7":
+        description: "open gripper"
+        type: 2
+        pct: 40
+        after_human_task: -1
+        start_delay: 0.0
+      "8":
+        description: "up"
+        type: 0
+        goal: 3
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "9":
+        description: "go home"
         type: 0
         goal: 0
         after_human_task: -1
@@ -490,10 +677,10 @@ test_sequence:
         planner: irrta
         use_nonrestrictive_planner: true
     human_sequence:
-      length: 2
-      start_pose: []  
+      length: 5
       simulated_switch_times: [0.0]  
-      show_human_rate: 50
+      show_human_rate: 20
+      start_pose: [0.8,-0.3,0.965214,0.705906,-0.035458,0.0493738,-0.705692,0.677521,-0.0379904,-0.28419,-0.677316,0.503807,0.609008,0.34874,-0.503655,0.201172,-0.571943,-0.769392,-0.201111,0.501976,0.703839,0.0283315,-0.501825,0.201097,0.370572,0.884207,-0.201036,0.505554,-0.261435,-0.648565,-0.505401]
       "0":
         description: "right arm start pose"
         after_robot_task: 0
@@ -510,3 +697,330 @@ test_sequence:
         reach_target: [0.8,-0.2,0.9] #[0.2,0.8,0.9]
         arm: "left"
         check_pos: false
+      "2":
+        description: "reach for disc on the table"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.2,0.5,1.0] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "3":
+        description: "put part on left pallet"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.3,-0.48,1.05] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "4":
+        description: "right arm start pose"
+        after_robot_task: 8
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.8,0.2,0.9] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+  "3":
+    collision_boxes:
+      length: 14
+      "0":
+        origin_xyz_wxyz_dims: [0.15,0.9,1.5,1,0,0,0,0.2,0.5,0.5]
+        name: "monitor"
+      "1":
+        origin_xyz_wxyz_dims: [0.15,0.0,1.05,1,0,0,0,0.05,0.3,0.2]
+        name: "ledge"
+      "2":
+        origin_xyz_wxyz_dims: [-0.12,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_0"
+      "3":
+        origin_xyz_wxyz_dims: [-0.52,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_1"
+      "4":
+        origin_xyz_wxyz_dims: [-0.32,-0.675,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_2"
+      "5":
+        origin_xyz_wxyz_dims: [-0.32,-0.025,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_3"
+      "6":
+        origin_xyz_wxyz_dims: [-0.15,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_0"
+      "7":
+        origin_xyz_wxyz_dims: [-0.55,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_1"
+      "8":
+        origin_xyz_wxyz_dims: [-0.35,0.905,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_2"
+      "9":
+        origin_xyz_wxyz_dims: [-0.35,0.255,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_3"
+      "10":
+        origin_xyz_wxyz_dims: [0.30,-0.48,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet"
+      "11":
+        origin_xyz_wxyz_dims: [0.30,-0.05,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet2"
+      "12":
+        origin_xyz_wxyz_dims: [0.05,0.2,0.95,1,0,0,0,0.3,0.3,0.3]
+        name: "t1_parts"
+      "13":
+        origin_xyz_wxyz_dims: [-0.2,-0.95,1.35,1,0,0,0,0.5,0.1,0.3]
+        name: "thing_on_pillar"
+    workcell_transform: [0.0,0.0,1.0,0.707,0,0,-0.707]
+    planning_time: 10.0
+    robot_positions:
+      length: 1
+      "0": [0.4,0.0,0.11,0.000273793,-0.382499,0.923956,-0.000113345]
+    robot_positions_at:
+      length: 1
+      "0": [0.32,0.52,1.06,-0.000199288,1,-0.000473188,0.000552502]
+      "1": [-0.253,-0.57,1.2,-0.000199288,1,-0.000473188,0.000552502]
+      "2": [-0.253,-0.57,0.995,-0.000199288,1,-0.000473188,0.000552502]
+      "3": [0.32,0.52,1.2,-0.000199288,1,-0.000473188,0.000552502]
+      "4": [0.32,0.52,1.06,-0.000199288,1,-0.000473188,0.000552502]
+    robot_poses:
+      length: 5
+      "0": [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
+      "1": [2.86023,-1.64408,2.01782,-1.94485,1.57197,0.283005]
+      "2": [2.85976,-1.70939,1.70779,-1.56821,1.57217,0.282961]
+      "3": [0.658463,-1.46868,1.83925,-1.94064,1.57008,2.48468]
+      "4": [0.657863,-1.52538,1.64708,-1.69166,1.56934,2.48495]
+    robot_sequence:
+      length: 10
+      planning_methods:
+        "1":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: true
+        "2":
+          pipeline: irrt_avoid
+          planner: irrta
+          continuously_replan: false
+        "3":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: true
+        "4":
+          pipeline: dirrt
+          planner: dirrt_paper
+          continuously_replan: false
+        "5":
+          pipeline: dirrt
+          planner: multigoal_ssm_test
+          continuously_replan: false
+      nonrestrictive_pipeline: irrt_avoid #irrt_avoid, dirrt, dirrt
+      nonrestrictive_planner: irrta #irrta, dirrt_paper, multigoal_ssm_test
+      "0":
+        description: "open gripper"
+        type: 2
+        pct: 40
+        after_human_task: -1
+        start_delay: 0.0
+      "1":
+        description: "go to perch position"
+        type: 0
+        goal: 1
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+      "2":
+        description: "pick position"
+        type: 0
+        goal: 2
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "3":
+        description: "close gripper"
+        type: 1
+        pct: 0
+        after_human_task: -1
+        start_delay: 0.0
+      "4":
+        description: "up"
+        type: 0
+        goal: 1
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "5":
+        description: "go to place position"
+        type: 0
+        goal: 3
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+      "6":
+        description: "place"
+        type: 0
+        goal: 4
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "7":
+        description: "open gripper"
+        type: 2
+        pct: 40
+        after_human_task: -1
+        start_delay: 0.0
+      "8":
+        description: "up"
+        type: 0
+        goal: 3
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: ompl
+        planner: BiTRRT
+      "9":
+        description: "go home"
+        type: 0
+        goal: 0
+        after_human_task: -1
+        start_delay: 0.0
+        pipeline: irrt_avoid
+        planner: irrta
+        use_nonrestrictive_planner: true
+    human_sequence:
+      length: 9
+      start_pose: []  
+      simulated_switch_times: [0.0]  
+      show_human_rate: 50
+      start_pose: [0.8,-0.3,0.965214,0.705906,-0.035458,0.0493738,-0.705692,0.677521,-0.0379904,-0.28419,-0.677316,0.503807,0.609008,0.34874,-0.503655,0.201172,-0.571943,-0.769392,-0.201111,0.501976,0.703839,0.0283315,-0.501825,0.201097,0.370572,0.884207,-0.201036,0.505554,-0.261435,-0.648565,-0.505401]
+      "0":
+        description: "right arm start pose"
+        after_robot_task: 0
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.8,-0.1,1.2] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "1":
+        description: "left arm start pose"
+        after_robot_task: 0
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.8,-0.5,1.2] #[0.2,0.8,0.9]
+        arm: "left"
+        check_pos: false
+      "2":
+        description: "reach for disc on the table"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.2,0.2,1.0] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "3":
+        description: "put part on left pallet"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.3,-0.48,1.05] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "4":
+        description: "reach for bolt on table"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.2,0.4,1.0] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "5":
+        description: "put bolt on middle pallet"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.3,-0.05,1.15] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "6":
+        description: "reach for bolt on table"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [-0.2,0.4,1.0] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "7":
+        description: "put bolt on middle pallet"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 0.0
+        reach_target: [0.3,-0.05,1.15] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+      "8":
+        description: "right arm start pose"
+        after_robot_task: 4
+        after_human_task: -1
+        start_delay: 5.0
+        reach_target: [0.8,-0.1,1.2] #[-0.2,0.8,0.9]
+        arm: "right"
+        check_pos: false
+  "4":
+    collision_boxes:
+      length: 13
+      "0":
+        origin_xyz_wxyz_dims: [0.15,0.0,1.05,1,0,0,0,0.05,0.3,0.2]
+        name: "ledge"
+      "1":
+        origin_xyz_wxyz_dims: [-0.12,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_0"
+      "2":
+        origin_xyz_wxyz_dims: [-0.52,-0.35,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "l_box_1"
+      "3":
+        origin_xyz_wxyz_dims: [-0.32,-0.675,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_2"
+      "4":
+        origin_xyz_wxyz_dims: [-0.32,-0.025,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "l_box_3"
+      "5":
+        origin_xyz_wxyz_dims: [-0.15,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_0"
+      "6":
+        origin_xyz_wxyz_dims: [-0.55,0.58,0.9,1,0,0,0,0.03,0.65,0.3]
+        name: "r_box_1"
+      "7":
+        origin_xyz_wxyz_dims: [-0.35,0.905,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_2"
+      "8":
+        origin_xyz_wxyz_dims: [-0.35,0.255,0.9,1,0,0,0,0.4,0.03,0.3]
+        name: "r_box_3"
+      "9":
+        origin_xyz_wxyz_dims: [0.30,-0.48,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet"
+      "10":
+        origin_xyz_wxyz_dims: [0.30,-0.05,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "pallet2"
+      "11":
+        origin_xyz_wxyz_dims: [0.05,0.2,0.95,1,0,0,0,0.3,0.3,0.3]
+        name: "t1_parts"
+      "12":
+        origin_xyz_wxyz_dims: [0.3,0.5,1.1,1,0,0,0,0.3,0.3,0.2]
+        name: "right_pallet"
+    robot_positions_at:
+      length: 1
+      "0": [0.32,0.52,1.06,-0.000199288,1,-0.000473188,0.000552502]
+      "1": [-0.252527,0.615828,1.15,-0.0078969,0.707009,0.70715,0.00370379]
+      "2": [0.3,-0.7,1.22,-0.000199288,1,-0.000473188,0.000552502]
+      "3": [0.3,0.7,1.22,-0.000199288,1,-0.000473188,0.000552502]
+      "4": [0.3,0.7,1.22,-0.000199288,1,-0.000473188,0.000552502]
+      "5": [-0.292,-0.5,1.1,-0.000199288,1,-0.000473188,0.000552502]
+    robot_poses:
+      length: 5
+      "0": [1.5707963267949, -2.44346095279206, 2.44346095279206,-1.5707963267949, 1.5707963267949, 0]
+      "1": [-0.313824,-1.82125,2.06691,-1.79899,1.5707,1.88502]
+      "2": [2.32584,-1.13013,1.43527,-1.87592,1.5715,0.817069]
+      "3": [0.65305,-1.50228,1.91374,-1.98013,1.5694,2.49009]
+      "4": [0.507907,-1.28134,1.64746,-1.93558,1.5697,2.63496]
+      "5": [2.89355,-1.81631,1.97772,-1.73246,1.5711,0.249443]
+      

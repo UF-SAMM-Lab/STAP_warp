@@ -142,13 +142,14 @@ data_recorder::data_recorder(ros::NodeHandle nh,std::string log_file_full_path, 
 
   if (!nh.getParam("/human_link_lengths", human_dims)) ROS_ERROR("couldn't read human dimensions");
 
-  record_timer = nh_.createTimer(ros::Duration(1.0/60.0), &data_recorder::record_thread, this);
+  record_timer = nh_.createTimer(ros::Duration(1.0/30.0), &data_recorder::record_thread, this);
   record_timer.stop();
 
   human_pose_pts = std::vector<double>(29*2*3,0.0);
 
   min_distance = std::numeric_limits<double>::max();
   log_start_time = ros::Time::now();
+  pelvis_loc = Eigen::Vector3f(0,0,0);
 
 }
 
@@ -194,6 +195,9 @@ void data_recorder::skeleton_callback(const std_msgs::Float32MultiArray::ConstPt
 void data_recorder::skel_quats_cb(const std_msgs::Float32MultiArray::ConstPtr& msg) {
     std::lock_guard<std::mutex> lck(mtx5);
     std::vector<float> pose_elements = msg->data;
+    pelvis_loc[0] = pose_elements[1];
+    pelvis_loc[1] = pose_elements[2];
+    pelvis_loc[2] = pose_elements[3];
     live_human_quats.clear();
     for (int i=0;i<7;i++){
         live_human_quats.push_back(Eigen::Quaternionf(pose_elements[i*4+4],pose_elements[i*4+5],pose_elements[i*4+6],pose_elements[i*4+7]));
@@ -345,6 +349,7 @@ void data_recorder::record_thread(const ros::TimerEvent& event) {
         logFile<<"pred r elbow x, y, z,";
         logFile<<"pred r wrist x, y, z,";
         for (int j=0;j<human_dims.size();j++) logFile<<"dim:"<<j<<",";
+        for (int j=0;j<31;j++) logFile<<"h_q:"<<j<<",";
         logFile<<"plan time,min sep dist, tip speed\n";
     }
     t = (event.current_real-start_time).toSec();
@@ -392,6 +397,10 @@ void data_recorder::record_thread(const ros::TimerEvent& event) {
     std::lock_guard<std::mutex> lck2(mtx2);
     std::lock_guard<std::mutex> lck3(dims_mtx);
     for (int j=0;j<human_dims.size();j++) logFile<<human_dims[j]<<",";
+
+    std::lock_guard<std::mutex> lck4(mtx5);
+    logFile<<pelvis_loc[0]<<","<<pelvis_loc[1]<<","<<pelvis_loc[2]<<",";
+    for (int j=0;j<live_human_quats.size();j++) logFile<<live_human_quats[j].w()<<","<<live_human_quats[j].x()<<","<<live_human_quats[j].y()<<","<<live_human_quats[j].z()<<",";
     logFile<<plan_time<<","<<min_distance<<","<<tangential_speed<<"\n";   
     log_lines++; 
 }

@@ -132,6 +132,8 @@ stap_warper::stap_warper(ros::NodeHandle nh, robot_state::RobotStatePtr state, r
       }
     // }
     joint_names = state->getVariableNames();
+
+    sub_ovr = nh.subscribe<std_msgs::Int64>("/speed_ovr",1,&stap_warper::speed_ovr_callback,this);
 }
 
 void stap_warper::act_traj_callback(const trajectory_msgs::JointTrajectory::ConstPtr& trj) {
@@ -331,7 +333,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                     }
                   }
                 }
-                nom_time = last_wpt_time + (1.0/std::max(min_scale,0.01))*diff_pct*nominal_time;
+                nom_time = last_wpt_time + (1.0/std::max(min_scale*global_override,0.01))*diff_pct*nominal_time;
                 if (prev_repl_steps>0) {
                   tau+=((double)prev_repl_steps/((double)smooth_steps+1.0))*last_repulsion_tau;
                   prev_repl_steps--;
@@ -356,7 +358,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
                     if (T_base_all_links[j](2,3)<table_tolerance) {
                       Eigen::Matrix6Xd jacobian = chain_->getJacobianLink(cur_q,link_names[j]);
                       Eigen::VectorXd tmp_tau = table_repulsion*(table_tolerance-T_base_all_links[j](2,3))*jacobian.block(0,0,3,jacobian.cols()).transpose()*Eigen::Vector3d::UnitZ();//-attraction*((new_poses.back()-cur_pose)+(nxt_pose-cur_pose));
-                      std::cout<<"too low! table tau:"<<tmp_tau.transpose()<<std::endl;
+                      // std::cout<<"too low! table tau:"<<tmp_tau.transpose()<<std::endl;
                       tau -= tmp_tau;
                     }
                   }
@@ -526,7 +528,7 @@ void stap_warper::warp(std::vector<std::pair<float,Eigen::MatrixXd>> &human_seq,
     tp_trj.getRobotTrajectoryMsg(trj_msg);
     new_plan = trj_msg.joint_trajectory;
     // trj = new_plan;
-    std::cout<<new_plan.points.back().time_from_start.toSec();
+    // std::cout<<new_plan.points.back().time_from_start.toSec();
     new_plan.points.erase(new_plan.points.begin());
     // new_plan.points.erase(new_plan.points.begin());
 
@@ -740,6 +742,11 @@ void stap_warper::time_parameterize(trajectory_msgs::JointTrajectory &plan, std:
     vel_profile.emplace_back(sgn*accelerations,-1.0*sgn*deccelerations,accel_stop_time+last_end_time,deccel_start_time+last_end_time);
     last_end_time += end_time;
   }
+}
+
+
+void stap_warper::speed_ovr_callback(const std_msgs::Int64::ConstPtr& msg) {
+    global_override = (double)msg->data/100.0;
 }
 
 }

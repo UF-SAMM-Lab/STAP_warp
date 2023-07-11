@@ -235,7 +235,7 @@ void humans::show_reach_tgt(int step_num) {
         pt.z = data[step_num].reach_target_right[2];
         mkr2.points.push_back(pt);
     }
-    wrist_trace_pub.publish(mkr2);
+    reach_tgt_pub.publish(mkr2);
 }
 
 void humans::save_full_seq(std::string file_name) {
@@ -353,7 +353,7 @@ void humans::update_predictions(int cur_step, std::vector<float> cur_pose, int r
 
 void humans::pub_descrition(int step_num) {
     if ((step_num<0)||(step_num>data.size()-1)) return;
-    pub_txt->publish(gen_overlay_text(data[step_num].description));
+    pub_txt->publish(gen_overlay_text(std::to_string(step_num) + ", " + data[step_num].description));
 }
 
 void humans::show_sequence(void) {
@@ -851,6 +851,26 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     {
       ROS_WARN("/sequence_test/tip_offset is not set");
     }
+    if (!nh.getParam("/sequence_test/use_warp",use_warp))
+    {
+      ROS_WARN("/sequence_test/use_warp is not set");
+    }
+    if (!nh.getParam("/sequence_test/path_set_num",path_set_num))
+    {
+      ROS_WARN("/sequence_test/path_set_num is not set");
+    }
+    ROS_INFO_STREAM("path_set_num:"<<path_set_num);
+    std::string gripper_response_topic = "";
+    if (!nh.getParam("/sequence_test/gripper_done_topic",gripper_response_topic))
+    {
+        wait_gripper_response = false;
+      ROS_WARN("/sequence_test/gripper_done_topic is not set");
+    } else {
+        wait_gripper_response = true;
+      ROS_INFO_STREAM("/sequence_test/gripper_done_topic is "<<gripper_response_topic);
+      sub_response = nh.subscribe<std_msgs::Bool>(gripper_response_topic,1,&robot_sequence::grip_resp_callback,this);
+    }   
+
     ROS_INFO_STREAM("tip_offset:"<<tip_offset);
 
     std::vector<double> pose(6);
@@ -913,6 +933,12 @@ robot_sequence::robot_sequence(ros::NodeHandle nh, robot_state::RobotStatePtr st
     unsigned int npnt=50;
     grid_ = std::make_shared<human_occupancy::OccupancyGrid>(workspace_lb,workspace_ub,npnt);
     link_names = move_group.getLinkNames();
+
+    sub_ovr = nh.subscribe<std_msgs::Int64>("/speed_ovr",1,&robot_sequence::speed_ovr_callback,this);
+}
+
+void robot_sequence::grip_resp_callback(const std_msgs::Bool::ConstPtr& msg) {
+    gripper_done = msg->data;
 }
 
 void robot_sequence::perf_callback(const std_msgs::Float64MultiArray::ConstPtr& msg) {
@@ -952,7 +978,15 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
             std::cout << "Created a directory\n";
         if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)+"/"+data[seg_num].pipeline + "_" + data[seg_num].planner))
             std::cout << "Created a directory\n";
-        std::string bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num) + "/"+data[seg_num].pipeline + "_" + data[seg_num].planner + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
+        std::string bag_file = "";
+        if (((data[seg_num].pipeline=="irrt_avoid")||(data[seg_num].pipeline=="ompl")) && (path_set_num>0)) {
+            if(fs::create_directory(ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num)+"/set" + std::to_string(path_set_num) + "/"+data[seg_num].pipeline + "_" + data[seg_num].planner))
+                std::cout << "Created a directory\n";
+            bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num) +"/set" + std::to_string(path_set_num) + "/"+data[seg_num].pipeline + "_" + data[seg_num].planner + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
+        } else {
+            bag_file= ros::package::getPath("stap_warp")+"/plans/" + plan_group + "/test_" + std::to_string(test_num) + "/"+data[seg_num].pipeline + "_" + data[seg_num].planner + "/sequence_" + std::to_string(seg_num) + "_plan.bag";
+        }   
+        std::cout<<bag_file<<std::endl;
         if (access( bag_file.c_str(), F_OK ) != -1) {
             rosbag::Bag bag; 
             bag.open(bag_file, rosbag::bagmode::Read);
@@ -982,6 +1016,7 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
                 Eigen::Quaterniond tip_q(tip_tf.rotation());
                 ROS_INFO_STREAM("tip_pos:"<<tip_pos[0]<<","<<tip_pos[1]<<","<<tip_pos[2]<<","<<tip_q.w()<<","<<tip_q.x()<<","<<tip_q.y()<<","<<tip_q.z());
             }
+            start_joint = data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions;
             return planning_times[0];
         } else {
             move_group.setPlanningPipelineId(data[seg_num].pipeline);
@@ -1004,7 +1039,7 @@ double robot_sequence::plan_robot_segment(int seg_num, std::vector<double>& star
                     ROS_INFO("waiting for planner time estimate");
                 }
             } else {
-                plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec();
+                plan_time = plan.trajectory_.joint_trajectory.points.back().time_from_start.toSec()*global_override;
             }
             if (plan_success) {
                 data[seg_num].plan = plan;
@@ -1048,6 +1083,12 @@ void robot_sequence::segment_thread_fn(int seg_num) {
     rec->plan_time = data[seg_num].planned_time;
     if ((seg_num<0)||(seg_num>data.size())) return;
     if (data[seg_num].get_type()==0) {
+        std::cout<<"start from pos:";
+        for (int i=0;i<6;i++) std::cout<<data[seg_num].plan.trajectory_.joint_trajectory.points.front().positions[i]<<",";
+        std::cout<<std::endl;
+        std::cout<<"going to pos:";
+        for (int i=0;i<6;i++) std::cout<<data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions[i]<<",";
+        std::cout<<std::endl;
         if (data[seg_num].pipeline=="irrt_avoid") {
             move_group.asyncExecute(data[seg_num].plan);
             Eigen::VectorXd goal_vec(6);
@@ -1058,7 +1099,11 @@ void robot_sequence::segment_thread_fn(int seg_num) {
                 human_data->joint_seq_mtx.lock();
                 std::vector<std::pair<float,Eigen::MatrixXd>> human_seq = human_data->full_joint_seq;
                 human_data->joint_seq_mtx.unlock();
-                stap_warper.warp(human_seq,std::max((ros::Time::now()-p_start).toSec(),0.0),rec->joint_pos_vec,rec->get_current_joint_state());
+                if (use_warp) {
+                    // std::cout<<human_seq.size()<<std::endl;
+                    stap_warper.warp(human_seq,std::max((ros::Time::now()-p_start).toSec(),0.0),rec->joint_pos_vec,rec->get_current_joint_state()); 
+
+                }
                 ros::Duration(0.01).sleep();
             }
         } else if (data[seg_num].pipeline=="dirrt") {
@@ -1098,67 +1143,72 @@ void robot_sequence::segment_thread_fn(int seg_num) {
             move_group.asyncExecute(data[seg_num].plan);
 
             bool dist_ready = false;
-            int prev_spd_scale = 0.0;
+            int prev_spd_scale = 100;
             ros::Time prev_plan_time=ros::Time::now()-ros::Duration(1.0);
             bool replan_needed = false;
             ros::Time last_motion_time = ros::Time::now();
             
             double prev_min_dist = rec->get_min_dist();
 
-            while ((rec->joint_pos_vec-goal_vec).norm()>0.001) {
+            while ((rec->joint_pos_vec-goal_vec).norm()>0.01) {
                 if (rec->joint_vel_vec.cwiseAbs().sum()>0.01) last_motion_time = ros::Time::now();
                 replan_needed = ((ros::Time::now()-last_motion_time).toSec()>1.0);
                 //if stopped replan
-            
-                if (((((ros::Time::now()-prev_plan_time).toSec()>1.0) && (rec->spd_scale<50)) && (rec->spd_scale-prev_spd_scale<=0))||replan_needed) {
-                    move_group.stop();
-                    int t=0;
-                    while (rec->joint_vel_vec.cwiseAbs().sum()>0.001) {
-                        goal_id_msg.stamp = ros::Time::now();
-                        goal_mtx.lock();
-                        goal_id_msg.id = goal_id;
-                        ROS_INFO_STREAM("send"<<goal_id);
-                        goal_mtx.unlock();
-                        pub_cancel_traj.publish(goal_id_msg);
-                        t++;
-                    }
-                    ROS_INFO_STREAM("stopped");
-                    centroids_pub.publish(rec->pose_msg);
-                    // show_human.stop_show_human();
-                    ros::Duration(0.1).sleep();
-                    // std::cin.ignore();
+                if (data[seg_num].continuously_replan) {
+                    if (((((ros::Time::now()-prev_plan_time).toSec()>1.0) && (rec->spd_scale<40)) && (rec->spd_scale-prev_spd_scale<=0))||replan_needed) {
+                        move_group.stop();
+                        int t=0;
+                        while (rec->joint_vel_vec.cwiseAbs().sum()>0.001) {
+                            goal_id_msg.stamp = ros::Time::now();
+                            goal_mtx.lock();
+                            goal_id_msg.id = goal_id;
+                            ROS_INFO_STREAM("send"<<goal_id);
+                            goal_mtx.unlock();
+                            pub_cancel_traj.publish(goal_id_msg);
+                            t++;
+                        }
+                        ROS_INFO_STREAM("stopped");
+                        centroids_pub.publish(rec->pose_msg);
+                        // show_human.stop_show_human();
+                        ros::Duration(0.1).sleep();
+                        // std::cin.ignore();
 
-                    plan_success = false;
-                    t = 0;
-                    while ((!plan_success) && (t<20)) {
-                        // for (int j=0; j<rec.joint_positions.size();j++) std::cout<<rec.joint_positions[j]<<",";
-                        std::cout<<std::endl;
-                        move_group.setPlanningTime(0.5);
-                        state->setVariablePositions(rec->joint_positions);
-                        move_group.setStartState(*state);
-                        move_group.setJointValueTarget(plan.trajectory_.joint_trajectory.points.back().positions);
-                        plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
-                        t++;
+                        plan_success = false;
+                        t = 0;
+                        while ((!plan_success) && (t<100)) {
+                            // for (int j=0; j<rec.joint_positions.size();j++) std::cout<<rec.joint_positions[j]<<",";
+                            std::cout<<std::endl;
+                            move_group.setPlanningTime(1.0);
+                            state->setVariablePositions(rec->joint_positions);
+                            move_group.setStartState(*state);
+                            move_group.setJointValueTarget(plan.trajectory_.joint_trajectory.points.back().positions);
+                            plan_success = (move_group.plan(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                            t++;
+                        }
+                        if (plan_success) {
+                            // co_human.resume_obs();
+                            // show_human.resume_show_human();
+                            ros::Duration(0.1).sleep();
+                            bool move_success = (move_group.asyncExecute(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
+                            ros::Duration(0.1).sleep();
+                            prev_plan_time=ros::Time::now();
+                            last_motion_time = ros::Time::now();
+                        }
                     }
-                    // co_human.resume_obs();
-                    // show_human.resume_show_human();
-                    ros::Duration(0.1).sleep();
-                    bool move_success = (move_group.asyncExecute(plan)==moveit::planning_interface::MoveItErrorCode::SUCCESS);
-                    ros::Duration(0.1).sleep();
-                    prev_plan_time=ros::Time::now();
-                    last_motion_time = ros::Time::now();
-                }
+                } 
                 prev_spd_scale = rec->spd_scale;
                 ros::Duration(0.01).sleep();
             }
+            ros::Duration(0.1).sleep();
         } else {
             move_group.asyncExecute(data[seg_num].plan);
             Eigen::VectorXd goal_vec(6);
             for (int i=0;i<6;i++) goal_vec[i] = data[seg_num].plan.trajectory_.joint_trajectory.points.back().positions[i];
             ros::Duration(0.1).sleep();
-            while ((rec->joint_pos_vec-goal_vec).norm()>0.001) {
+            while ((rec->joint_pos_vec-goal_vec).norm()>0.01) {
                 ros::Duration(0.01).sleep();
             }
+            ros::Duration(0.1).sleep();
         }
     }
     else if (data[seg_num].get_type()==1) {
@@ -1166,7 +1216,14 @@ void robot_sequence::segment_thread_fn(int seg_num) {
         std_msgs::Bool gripper_msg;
         gripper_msg.data = false;
         grip_pub.publish(gripper_msg);
-        ros::Duration(0.5).sleep();
+        gripper_done = false;
+        if (wait_gripper_response) {
+            ROS_INFO_STREAM("waiting for gripper");
+            while (!gripper_done) ros::Duration(0.05).sleep();
+            ros::Duration(1.0).sleep();
+        } else {
+            ros::Duration(0.5).sleep();
+        }
     }
     else if (data[seg_num].get_type()==2) {
         //open gripper  
@@ -1178,7 +1235,14 @@ void robot_sequence::segment_thread_fn(int seg_num) {
         std_msgs::Bool gripper_msg;
         gripper_msg.data = true;
         grip_pub.publish(gripper_msg);
-        ros::Duration(0.5).sleep();
+        gripper_done = false;
+        if (wait_gripper_response) {
+            ROS_INFO_STREAM("waiting for gripper");
+            while (!gripper_done) ros::Duration(0.05).sleep();
+            ros::Duration(1.0).sleep();
+        } else {
+            ros::Duration(0.5).sleep();
+        }
     }
     segment_active = false;
 }
@@ -1240,8 +1304,11 @@ robot_segment::robot_segment(ros::NodeHandle nh, int idx, int test_num) {
     tmp = nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/use_nonrestrictive_planner",use_nonrestrictive);
     tmp = tmp && use_nonrestrictive;
     if (tmp) {
-        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/nonrestrictive_pipeline", pipeline);
-        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/nonrestrictive_planner", planner);
+        int plan_method = 1;
+        nh.getParam("/sequence_test/plan_method",plan_method);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/planning_methods/" + std::to_string(plan_method) + "/pipeline", pipeline);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/planning_methods/" + std::to_string(plan_method) + "/planner", planner);
+        nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/planning_methods/" + std::to_string(plan_method) + "/continuously_replan", continuously_replan);
     } else {
         nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/pipeline", pipeline);
         nh.getParam("/test_sequence/" + std::to_string(test_num) + "/robot_sequence/"+std::to_string(idx)+"/planner", planner);
@@ -1333,4 +1400,9 @@ std::vector<float> transform_pose_to_UF(std::vector<float> input_pose, Eigen::Is
     }
     return output_pose;
 }
+
+void robot_sequence::speed_ovr_callback(const std_msgs::Int64::ConstPtr& msg) {
+    global_override = (double)msg->data/100.0;
+}
+
 }

@@ -10,6 +10,7 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <avoidance_intervals/avoidance_model.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Int64.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Point.h>
 #include <eigen_conversions/eigen_msg.h>
@@ -64,5 +65,8 @@ class stap_warper {
         std::string plan_group;
         std::vector<std::string> joint_names;
         double goal_stop_tolerance = 0.7;
+        double global_override = 0.5;
+        void speed_ovr_callback(const std_msgs::Int64::ConstPtr& msg);
+        ros::Subscriber sub_ovr;
 };
 }

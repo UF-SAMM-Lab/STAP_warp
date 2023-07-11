@@ -1,5 +1,5 @@
 warp:
-  repulsion: 0.003 #.02
+  repulsion: 0.001 #.02,.003
   attraction: 0.00
   table_repulsion: 0.1 #.02 
   smooth_steps: 2
@@ -11,5 +11,5 @@ warp:
   connection_min_dist: 0.3
   goal_stop_tolerance: 1.0
   scale_jnt_ids: [7,8,10,15]
-  minimum_distance: 0.25 #0.20
-  reaction_time: 0.2 #0.17
+  minimum_distance: 0.25 #0.20 .25
+  reaction_time: 0.15 #0.17 .2

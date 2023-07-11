@@ -157,6 +157,7 @@ class robot_segment {
         std::string planner;
         std::string description = "";
         double get_gripper_pct() {return gripper_pct;}
+        bool continuously_replan = true;
     private:
         int id = 0;
         int type = 0;
@@ -188,6 +189,8 @@ class robot_sequence {
         std::vector<std::vector<double>> goals_angles;
         ros::NodeHandle nh;
         ros::Subscriber planner_sub;
+        ros::Subscriber sub_response;
+        bool wait_gripper_response = false;
         ros::Publisher nom_plan_pub;
         ros::Publisher grip_pos_pub;
         ros::Publisher grip_pub;
@@ -217,5 +220,12 @@ class robot_sequence {
         std::string tip_link = "";
         double tip_offset = 0.05;
         int test_num = 1;
+        bool use_warp = false;
+        bool gripper_done = false;
+        void grip_resp_callback(const std_msgs::Bool::ConstPtr& msg);
+        double global_override = 0.5;
+        void speed_ovr_callback(const std_msgs::Int64::ConstPtr& msg);
+        ros::Subscriber sub_ovr;
+        int path_set_num = 0;
 };
 }

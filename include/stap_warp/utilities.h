@@ -142,7 +142,7 @@ class data_recorder {
   std::mutex jnt_pos_mtx;
   double avoid_plan_time;
   geometry_msgs::PoseArray pose_msg;
-  int spd_scale=0;
+  int spd_scale=100;
   Eigen::VectorXd joint_pos_vec;
   data_recorder(ros::NodeHandle nh,std::string log_file_full_path, const planning_scene::PlanningScenePtr &planning_scene_ptr, std::shared_ptr<avoidance_intervals::skeleton> skel_ptr,moveit::core::RobotModelConstPtr robot_model,robot_state::RobotStatePtr state, std::vector<double> human_link_len, std::vector<double> human_link_radii, rosdyn::ChainPtr chain,std::string solvperflog_file_full_path);
   ~data_recorder();
@@ -229,4 +229,5 @@ class data_recorder {
   moveit::planning_interface::PlanningSceneInterface psi;
   std::vector<float> human_dims;
   void human_dims_callback(const std_msgs::Float32MultiArray::ConstPtr& msg);
+  Eigen::Vector3f pelvis_loc;
 };

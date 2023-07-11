@@ -135,14 +135,26 @@ int main(int argc, char** argv) {
     }
     ROS_INFO_STREAM(transform_to_world.matrix());
     human_quat_pose = stap_test::transform_pose_to_SW(human_quat_pose,transform_to_world);
+    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/human_sequence/start_pose", human_quat_pose)) {
+      ROS_ERROR("could not get start pose");
+    }
+    std::cout<<"start human:";
+    for (int i = 0;i<human_quat_pose.size();i++) std::cout<<human_quat_pose[i]<<",";
+    std::cout<<std::endl;
 
     std::string resp = "y";
     clearObstacles();
 
-    bool add_collision_box = false; 
-    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/add_collision_box",add_collision_box))
+    // bool add_collision_box = false; 
+    // if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/add_collision_box",add_collision_box))
+    // {
+    //   ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/add_collision_box is not set");
+    // } 
+
+    bool show_pred_sequence = false; 
+    if (!nh.getParam("/sequence_test/show_pred_sequence",show_pred_sequence))
     {
-      ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/add_collision_box is not set");
+      ROS_WARN_STREAM("/sequence_test/show_pred_sequence is not set");
     } 
 
     moveit::planning_interface::PlanningSceneInterface current_scene;
@@ -152,22 +164,77 @@ int main(int argc, char** argv) {
     moveit_msgs::ApplyPlanningScene srv;
     moveit_msgs::PlanningScene planning_scene_msg;
     planning_scene_msg.is_diff = true;
-    if (add_collision_box) {
+    // if (add_collision_box) {
+    //   std::vector<double> box_params; 
+    //   if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_box_origin_xyz_wxyz_dims",box_params))
+    //   {
+    //     ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_box_origin_xyz_wxyz_dims is not set");
+    //   } 
+    //   Eigen::Vector3f box_origin(box_params[0],box_params[1],box_params[2]);
+    //   // box_origin = transform_to_world*box_origin;
+    //   Eigen::Quaternionf box_quat(box_params[3],box_params[4],box_params[5],box_params[6]);
+    //   // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+    //   std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
+    //   planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(box_params[7],box_params[8],box_params[9]),box_origin,box_quat,"fixtures"));
+
+    // }
+    // if (true) 
+    // {
+    //   Eigen::Vector3f box_origin(0.15,0.9,1.5);
+    //   // box_origin = transform_to_world*box_origin;
+    //   Eigen::Quaternionf box_quat(1,0,0,0);
+    //   // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+    //   std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
+    //   planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.2,0.5,0.5),box_origin,box_quat,"monitor"));
+    // }
+    // if (true) 
+    // {
+    //   Eigen::Vector3f box_origin(0.15,0.0,1.05);
+    //   // box_origin = transform_to_world*box_origin;
+    //   Eigen::Quaternionf box_quat(1,0,0,0);
+    //   // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+    //   std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
+    //   planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.05,0.3,0.2),box_origin,box_quat,"ledge"));
+    // }
+
+    // if (true) 
+    // {
+    //   Eigen::Vector3f box_origin(-0.2,-0.3,0.9);
+    //   // box_origin = transform_to_world*box_origin;
+    //   Eigen::Quaternionf box_quat(1,0,0,0);
+    //   // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
+    //   std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
+    //   planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(0.4,0.65,0.2),box_origin,box_quat,"ledge"));
+    // }
+
+    int num_collision_boxes = 0;
+    if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_boxes/length",num_collision_boxes))
+    {
+      ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_boxes/length is not set");
+    } 
+
+    for (int i=0;i<num_collision_boxes;i++) {
       std::vector<double> box_params; 
-      if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_box_origin_xyz_wxyz_dims",box_params))
+      if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_boxes/" + std::to_string(i) + "/origin_xyz_wxyz_dims",box_params))
       {
-        ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_box_origin_xyz_wxyz_dims is not set");
+        ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_boxes/" << std::to_string(i)<<"/origin_xyz_wxyz_dims is not set");
+      } 
+      std::string box_name = "";
+      if (!nh.getParam("/test_sequence/" + std::to_string(test_num) + "/collision_boxes/" + std::to_string(i) + "/name",box_name))
+      {
+        ROS_WARN_STREAM("/test_sequence/"<<std::to_string(test_num)<<"/collision_boxes/" << std::to_string(i)<<"/name is not set");
       } 
       Eigen::Vector3f box_origin(box_params[0],box_params[1],box_params[2]);
       // box_origin = transform_to_world*box_origin;
       Eigen::Quaternionf box_quat(box_params[3],box_params[4],box_params[5],box_params[6]);
       // box_quat = Eigen::Quaternionf(transform_to_world.rotation())*box_quat;
       std::cout<<"box:"<<box_origin[0]<<","<<box_origin[1]<<","<<box_origin[2]<<","<<box_quat.w()<<","<<box_quat.x()<<","<<box_quat.y()<<","<<box_quat.z()<<std::endl;
-      planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(box_params[7],box_params[8],box_params[9]),box_origin,box_quat,"fixtures"));
-      srv.request.scene = planning_scene_msg;
-      // srv.request. = ps_ptr->getAllowedCollisionMatrix();
-      planning_scene_diff_client.call(srv);
+      planning_scene_msg.world.collision_objects.push_back(createCollisionBox(Eigen::Vector3f(box_params[7],box_params[8],box_params[9]),box_origin,box_quat,box_name));
     }
+
+    srv.request.scene = planning_scene_msg;
+    // srv.request. = ps_ptr->getAllowedCollisionMatrix();
+    planning_scene_diff_client.call(srv);
 
     std::shared_ptr<ros::ServiceClient> predictor = std::make_shared<ros::ServiceClient>(nh.serviceClient<stap_warp::human_prediction>("predict_human"));
     while (!predictor->exists()) {
@@ -214,7 +281,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<data_recorder> rec = std::make_shared<data_recorder>(nh,log_file, scene,test_skeleton,model,move_group.getCurrentState(),human_link_lengths2,human_link_radii2,chain,log_file2);
     stap_test::robot_sequence robot_data(nh,move_group.getCurrentState(),model,plan_group,human_data,rec,ps_ptr,pub_txt);
     human_data->predicted_motion();
-    human_data->show_predictions(human_link_lengths,human_link_radii);
+    if (show_pred_sequence) human_data->show_predictions(human_link_lengths,human_link_radii);
     int seg_num=0;
     //pre-plan all robot motions
     int h = 0;
@@ -223,10 +290,22 @@ int main(int argc, char** argv) {
     double segment_time = 0.0;
     double human_done_time = 0.0;
 
+    std::vector<double> home_joint = {0.0,0.0,0.0,0.0,0.0,0.0};
+    if (!nh.getParam("/home_joint",home_joint))
+    {
+      ROS_DEBUG("couldnt get home joint");
+    }
+    std::cout<<"home joint: ";
+    for (int s=0;s<home_joint.size();s++) {std::cout<<home_joint[s]<<", ";}
+    std::cout<<std::endl;
+
     std_msgs::Bool pause_track_msg;
     pause_track_msg.data = true;
     pub_pause_tracking.publish(pause_track_msg);
     std::vector<double> last_waypoint = move_group.getCurrentJointValues();
+    std::cout<<"current waypoint:";
+    for (int i=0;i<6;i++) std::cout<<last_waypoint[i]<<",";
+    std::cout<<std::endl;
     //plan robot segment nominal paths based on nominal predictions
     for (int i=0;i<robot_data.num_segments();i++) {
       ROS_INFO_STREAM("next h:"<<next_h);
@@ -286,6 +365,9 @@ int main(int argc, char** argv) {
 
       human_data->pub_descrition(human_step);
       human_data->update_predictions(human_step,human_quat_pose,robot_step,std::max(0.0,std::min((human_start_time-ros::Time::now()).toSec(),(double)human_data->human_start_delay(human_step))));
+
+      human_data->show_reach_tgt(human_step);
+      
       if (simulated) {
         double elapsed_tm = (ros::Time::now()-human_start_time).toSec();
         if ((human_data->simulate_step(human_step,elapsed_tm,human_quat_pose)) && (robot_step>human_data->human_prior_robot_task(human_step+1))) {
@@ -293,15 +375,25 @@ int main(int argc, char** argv) {
           human_start_time = ros::Time::now();
         }
 
-      } else if ((human_data->is_step_done(human_step)&&((ros::Time::now()-human_start_time).toSec()>0.8*human_data->get_step_end_time(human_step)))) {
-        human_step++;
-        human_start_time = ros::Time::now();
-        human_data->reset_motion_done();
+      } else if ((human_data->is_step_done(human_step)&&((ros::Time::now()-human_start_time).toSec()>1.0*human_data->get_step_end_time(human_step)))) {
+        if (robot_step>human_data->human_prior_robot_task(human_step+1)) {
+          human_step++;
+          ROS_INFO_STREAM("robot step:"<<robot_step<<", human step:"<<human_step);
+          human_start_time = ros::Time::now();
+          human_data->reset_motion_done();
+        }
       }
       // robot_data.update_prediction();
       r.sleep();
     } 
-    while (!robot_data.is_segment_active()) ros::Duration(0.1).sleep();
+    while (!robot_data.is_segment_active()) ros::Duration(0.03).sleep();
+    Eigen::VectorXd goal_vec(6);
+    for (int i=0;i<6;i++) goal_vec[i] = home_joint[i];
+    while ((rec->joint_pos_vec-goal_vec).norm()>0.01) {
+       ros::Duration(0.03).sleep();
+        // ROS_INFO_STREAM(rec->joint_vel_vec.transpose());
+    } 
+    ROS_INFO("stopping timer!");
     rec->stop();
     while (human_step<human_data->get_num_steps()) {
       ROS_INFO_STREAM_THROTTLE(5,"waiting for the human to finish tasks:"<<human_step);
